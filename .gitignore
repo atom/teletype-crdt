@@ -1,6 +1,2 @@
 node_modules
-*.swp
-lib
 npm-debug.log
-.coffee
-api.json
