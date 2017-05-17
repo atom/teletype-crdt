@@ -1,0 +1,45 @@
+#!/usr/bin/env node
+
+const childProcess = require('child_process')
+const path = require('path')
+
+const argv =
+  require('yargs')
+    .usage('Run tests')
+    .boolean('interactive')
+    .describe('interactive', 'Run tests in an Electron window')
+    .alias('i', 'interactive')
+    .boolean('rebuild')
+    .describe('rebuild', 'Rebuild against the correct Node headers before running tests')
+    .alias('r', 'rebuild')
+    .help()
+    .argv
+
+// Rebuild module against correct Node headers if requested
+if (argv.rebuild) {
+  let env
+  if (argv.interactive) {
+    const [major, minor] = Array.from(require('../package.json').devDependencies.electron.match(/(\d+)\.(\d+)/)).slice(1)
+    const electronVersion = `${major}.${minor}.0`
+    env = Object.assign({}, process.env, {
+      npm_config_runtime: 'electron',
+      npm_config_target: electronVersion,
+      npm_config_disturl: 'https://atom.io/download/atom-shell'
+    })
+    console.log(`Rebuilding native modules against Electron ${electronVersion}`)
+  } else {
+    env = process.env
+  }
+  childProcess.spawnSync('npm', ['rebuild'], {env, stdio: 'inherit'})
+}
+
+normalizeCommand = (command) => {
+  return process.platform === 'win32' ? path.normalize(command + '.cmd') : command
+}
+
+// Run tests
+if (argv.interactive) {
+  childProcess.spawnSync(normalizeCommand('./node_modules/.bin/electron'), ['script/electron-test-runner', 'test/**/*test.js'], {stdio: 'inherit', cwd: path.join(__dirname, '..')})
+} else {
+  process.exit(childProcess.spawnSync(normalizeCommand('./node_modules/.bin/mocha'), ['--ui=tdd'], {stdio: 'inherit'}).status)
+}

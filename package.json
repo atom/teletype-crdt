@@ -1,0 +1,22 @@
+{
+  "name": "realtime",
+  "version": "0.1.0",
+  "description": "",
+  "main": "./lib/index",
+  "scripts": {
+    "test": "node script/test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/atom/realtime.git"
+  },
+  "bugs": {
+    "url": "https://github.com/atom/realtime/issues"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "1.6",
+    "mocha": "^3.4.1",
+    "yargs": "^8.0.1"
+  }
+}
