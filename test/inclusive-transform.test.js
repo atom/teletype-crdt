@@ -11,12 +11,12 @@ suite('Inclusive Transform Function', () => {
 
     const initialSeed = Date.now()
     const buffer = new TextBuffer({text: 'ABCDEF\nGHIJKL\nMNOPQR\n'})
-    for (var iteration = 0; iteration < 10000; iteration++) {
+    for (var iteration = 0; iteration < 1000; iteration++) {
       let seed = initialSeed + iteration
       const failureMessage = `Random seed: ${seed}`
       const random = Random(seed)
       const operations = []
-      for (var i = 0; i < 2; i++) {
+      for (var i = 0; i < 3; i++) {
         const range = getRandomBufferRange(random, buffer)
         const priority = i
         if (random(2)) {
@@ -27,11 +27,11 @@ suite('Inclusive Transform Function', () => {
       }
 
       const finalTexts = []
-      const permutations = permute(operations)
-      for (const permutation of permutations) {
+      for (const permutation of permute(operations)) {
         buffer.transact(() => {
           applyOperationToBuffer(permutation[0], buffer)
           applyOperationToBuffer(IT(permutation[1], permutation[0]), buffer)
+          applyOperationToBuffer(IT(IT(permutation[2], permutation[0]), IT(permutation[1], permutation[0])), buffer)
         })
 
         finalTexts.push(buffer.getText())
@@ -61,9 +61,11 @@ suite('Inclusive Transform Function', () => {
   }
 
   function applyOperationToBuffer (operation, buffer) {
-    if (operation && operation.type === 'delete') {
+    if (operation == null) return
+
+    if (operation.type === 'delete') {
       buffer.setTextInRange([operation.start, operation.end], '')
-    } else if (operation && operation.type === 'insert') {
+    } else if (operation.type === 'insert') {
       buffer.setTextInRange([operation.start, operation.start], operation.text)
     }
   }
