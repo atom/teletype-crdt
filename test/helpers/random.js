@@ -1,12 +1,20 @@
 const WORDS = require('./words')
-const {Point, Range} = require('text-buffer')
+const {compare, traversal} = require('../../lib/point-helpers')
 
-exports.getRandomBufferRange = function getRandomBufferRange (random, buffer) {
-  const endRow = random(buffer.getLineCount())
+exports.getRandomDocumentPositionAndExtent = function getRandomDocumentPositionAndExtent (random, document) {
+  const endRow = random(document.getLineCount())
   const startRow = random.intBetween(0, endRow)
-  const startColumn = random(buffer.lineForRow(startRow).length + 1)
-  const endColumn = random(buffer.lineForRow(endRow).length + 1)
-  return Range(Point(startRow, startColumn), Point(endRow, endColumn))
+  const startColumn = random(document.lineForRow(startRow).length)
+  const endColumn = random(document.lineForRow(endRow).length)
+  let start = {row: startRow, column: startColumn}
+  let end = {row: endRow, column: endColumn}
+  if (compare(start, end) > 0) {
+    let temp = end
+    end = start
+    start = temp
+  }
+  const extent = traversal(end, start)
+  return {start, extent}
 }
 
 exports.buildRandomLines = function buildRandomLines (random, maxLines) {
