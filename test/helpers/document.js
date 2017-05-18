@@ -6,6 +6,16 @@ class Document {
     this.text = text
   }
 
+  apply (operation) {
+    if (operation == null) return
+
+    if (operation.type === 'delete') {
+      this.delete(operation.start, operation.extent)
+    } else if (operation.type === 'insert') {
+      this.insert(operation.start, operation.text)
+    }
+  }
+
   insert (position, text) {
     const index = characterIndexForPosition(this.text, position)
     this.text = this.text.slice(0, index) + text + this.text.slice(index)

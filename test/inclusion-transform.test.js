@@ -1,12 +1,12 @@
 const assert = require('assert')
-const IT = require('../lib/inclusive-transform')
+const inclusionTransform = require('../lib/inclusion-transform')
 const {DeleteOperation, InsertOperation} = require('../lib/operations')
 const {getRandomDocumentPositionAndExtent, buildRandomLines} = require('./helpers/random')
 const Random = require('random-seed')
 const Document = require('./helpers/document')
 
-suite('Inclusive Transform Function', () => {
-  test.only('respects the CE-CP1 and CP2 convergence and behavior preservation properties', function () {
+suite('Inclusion Transform Function', () => {
+  test('respects the CE-CP1 and CP2 convergence and behavior preservation properties', function () {
     this.timeout(Infinity)
 
     const initialSeed = Date.now()
@@ -18,20 +18,20 @@ suite('Inclusive Transform Function', () => {
       const document = new Document('ABCDEF\nGHIJKL\nMNOPQR\n')
       for (var i = 0; i < 3; i++) {
         const {start, extent} = getRandomDocumentPositionAndExtent(random, document)
-        const priority = i
+        const siteId = i
         if (random(2)) {
-          operations.push(new DeleteOperation(start, extent, priority))
+          operations.push(new DeleteOperation(start, extent, siteId))
         } else {
-          operations.push(new InsertOperation(start, buildRandomLines(random, 5), priority))
+          operations.push(new InsertOperation(start, buildRandomLines(random, 5), siteId))
         }
       }
 
       const finalTexts = []
       for (const permutation of permute(operations)) {
         const documentCopy = new Document(document.text)
-        applyOperation(documentCopy, permutation[0])
-        applyOperation(documentCopy, IT(permutation[1], permutation[0]))
-        applyOperation(documentCopy, IT(IT(permutation[2], permutation[0]), IT(permutation[1], permutation[0])))
+        documentCopy.apply(permutation[0])
+        documentCopy.apply(inclusionTransform(permutation[1], permutation[0]))
+        documentCopy.apply(inclusionTransform(inclusionTransform(permutation[2], permutation[0]), inclusionTransform(permutation[1], permutation[0])))
         finalTexts.push(documentCopy.text)
       }
 
@@ -55,15 +55,5 @@ suite('Inclusive Transform Function', () => {
       }
     }
     return permutations
-  }
-
-  function applyOperation (document, operation) {
-    if (operation == null) return
-
-    if (operation.type === 'delete') {
-      document.delete(operation.start, operation.extent)
-    } else if (operation.type === 'insert') {
-      document.insert(operation.start, operation.text)
-    }
   }
 })
