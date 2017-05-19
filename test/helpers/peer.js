@@ -5,10 +5,10 @@ const {InsertOperation, DeleteOperation} = require('../../lib/operations')
 
 module.exports =
 class Peer {
-  static buildNetwork (n) {
+  static buildNetwork (n, text) {
     const peers = []
     for (var i = 0; i < n; i++) {
-      peers.push(new Peer(i))
+      peers.push(new Peer(i, text))
     }
 
     for (var i = 0; i < n; i++) {
@@ -20,10 +20,10 @@ class Peer {
     return peers
   }
 
-  constructor (siteId) {
+  constructor (siteId, text) {
     this.siteId = siteId
     this.outboxes = new Map()
-    this.document = new Document('')
+    this.document = new Document(text)
     this.documentReplica = new DocumentReplica(siteId)
     this.deferredOperations = []
   }
