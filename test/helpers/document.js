@@ -10,7 +10,7 @@ class Document {
     if (operation == null) return
 
     if (operation.type === 'delete') {
-      this.delete(operation.start, operation.extent)
+      this.delete(operation.start, extentForText(operation.text))
     } else if (operation.type === 'insert') {
       this.insert(operation.start, operation.text)
     }

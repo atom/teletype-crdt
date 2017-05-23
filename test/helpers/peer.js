@@ -1,7 +1,7 @@
 const {getRandomDocumentPositionAndExtent, buildRandomLines} = require('./random')
 const Document = require('./document')
 const DocumentReplica = require('../../lib/document-replica')
-const {Operation} = require('../../lib/operations')
+const operationHelpers = require('../../lib/operation-helpers')
 
 module.exports =
 class Peer {
@@ -37,10 +37,10 @@ class Peer {
   }
 
   receive (operation) {
-    this.log('Received', operation.toString())
+    this.log('Received', operationHelpers.format(operation))
     if (operation.contextVector.isSubsetOf(this.documentReplica.documentState)) {
       const transformedOperation = this.documentReplica.pushRemote(operation)
-      this.log('Transforming it and applying it', transformedOperation.toString())
+      this.log('Transforming it and applying it', operationHelpers.format(transformedOperation))
       this.document.apply(transformedOperation)
       this.retryDeferredOperations()
     } else {
@@ -53,7 +53,7 @@ class Peer {
     const deferredOperations = this.deferredOperations
     this.deferredOperations = []
     for (const operation of deferredOperations) {
-      this.log('Retrying deferred operation', operation.toString())
+      this.log('Retrying deferred operation', operationHelpers.format(operation))
       this.receive(operation)
     }
   }
@@ -65,11 +65,11 @@ class Peer {
   performRandomEdit (random) {
     const {start, extent} = getRandomDocumentPositionAndExtent(random, this.document)
     const operation = random(2)
-      ? new Operation('delete', start, this.document.getTextFromPointAndExtent(start, extent), this.siteId)
-      : new Operation('insert', start, buildRandomLines(random, 5), this.siteId)
+      ? {type: 'delete', start, text: this.document.getTextFromPointAndExtent(start, extent)}
+      : {type: 'insert', start, text: buildRandomLines(random, 5)}
     this.document.apply(operation)
     const operationToSend = this.documentReplica.pushLocal(operation)
-    this.log('Sending', operationToSend.toString())
+    this.log('Sending', operationHelpers.format(operationToSend))
     this.send(operationToSend)
   }
 

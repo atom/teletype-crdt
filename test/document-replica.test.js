@@ -3,14 +3,13 @@ const Document = require('./helpers/document')
 const DocumentReplica = require('../lib/document-replica')
 const Peer = require('./helpers/peer')
 const Random = require('random-seed')
-const {Operation} = require('../lib/operations')
 
 suite('DocumentReplica', () => {
   test('push local or remote operation', () => {
     const replica1 = new DocumentReplica(0)
     const replica2 = replica1.copy(1)
-    const op1 = replica1.pushLocal(new Operation('insert', {row: 0, column: 0}, 'b'))
-    const op2 = replica2.pushLocal(new Operation('insert', {row: 0, column: 0}, 'a'))
+    const op1 = replica1.pushLocal({type: 'insert', start: {row: 0, column: 0}, text: 'b'})
+    const op2 = replica2.pushLocal({type: 'insert', start: {row: 0, column: 0}, text: 'a'})
     const op1B = replica2.pushRemote(op1)
     const op2B = replica1.pushRemote(op2)
 
