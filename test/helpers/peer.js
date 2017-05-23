@@ -1,7 +1,7 @@
 const {getRandomDocumentPositionAndExtent, buildRandomLines} = require('./random')
 const Document = require('./document')
 const DocumentReplica = require('../../lib/document-replica')
-const {InsertOperation, DeleteOperation} = require('../../lib/operations')
+const {Operation} = require('../../lib/operations')
 
 module.exports =
 class Peer {
@@ -65,8 +65,8 @@ class Peer {
   performRandomEdit (random) {
     const {start, extent} = getRandomDocumentPositionAndExtent(random, this.document)
     const operation = random(2)
-      ? new DeleteOperation(start, this.document.getTextFromPointAndExtent(start, extent), this.siteId)
-      : new InsertOperation(start, buildRandomLines(random, 5), this.siteId)
+      ? new Operation('delete', start, this.document.getTextFromPointAndExtent(start, extent), this.siteId)
+      : new Operation('insert', start, buildRandomLines(random, 5), this.siteId)
     this.document.apply(operation)
     const operationToSend = this.documentReplica.pushLocal(operation)
     this.log('Sending', operationToSend.toString())

@@ -1,6 +1,6 @@
 const assert = require('assert')
 const inclusionTransform = require('../lib/inclusion-transform')
-const {DeleteOperation, InsertOperation} = require('../lib/operations')
+const {Operation} = require('../lib/operations')
 const {getRandomDocumentPositionAndExtent, buildRandomLines} = require('./helpers/random')
 const Random = require('random-seed')
 const Document = require('./helpers/document')
@@ -20,9 +20,9 @@ suite('Inclusion Transform Function', () => {
         const {start, extent} = getRandomDocumentPositionAndExtent(random, document)
         const siteId = i
         if (random(2)) {
-          operations.push(new DeleteOperation(start, document.getTextFromPointAndExtent(start, extent), siteId))
+          operations.push(new Operation('delete', start, document.getTextFromPointAndExtent(start, extent), siteId))
         } else {
-          operations.push(new InsertOperation(start, buildRandomLines(random, 5), siteId))
+          operations.push(new Operation('insert', start, buildRandomLines(random, 5), siteId))
         }
       }
 
