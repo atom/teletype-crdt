@@ -20,7 +20,7 @@ suite('Inclusion Transform Function', () => {
         const {start, extent} = getRandomDocumentPositionAndExtent(random, document)
         const siteId = i
         if (random(2)) {
-          operations.push(new DeleteOperation(start, extent, siteId))
+          operations.push(new DeleteOperation(start, document.getTextFromPointAndExtent(start, extent), siteId))
         } else {
           operations.push(new InsertOperation(start, buildRandomLines(random, 5), siteId))
         }

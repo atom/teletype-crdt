@@ -65,7 +65,7 @@ class Peer {
   performRandomEdit (random) {
     const {start, extent} = getRandomDocumentPositionAndExtent(random, this.document)
     const operation = random(2)
-      ? new DeleteOperation(start, extent, this.siteId)
+      ? new DeleteOperation(start, this.document.getTextFromPointAndExtent(start, extent), this.siteId)
       : new InsertOperation(start, buildRandomLines(random, 5), this.siteId)
     this.document.apply(operation)
     const operationToSend = this.documentReplica.pushLocal(operation)

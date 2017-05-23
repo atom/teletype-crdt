@@ -27,6 +27,12 @@ class Document {
     this.text = this.text.slice(0, startIndex) + this.text.slice(endIndex)
   }
 
+  getTextFromPointAndExtent (start, extent) {
+    const startIndex = characterIndexForPosition(this.text, start)
+    const endIndex = characterIndexForPosition(this.text, traverse(start, extent))
+    return this.text.slice(startIndex, endIndex)
+  }
+
   getLineCount () {
     return extentForText(this.text).row + 1
   }
