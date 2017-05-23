@@ -25,6 +25,7 @@ class Peer {
     this.outboxes = new Map()
     this.document = new Document(text)
     this.documentReplica = new DocumentReplica(siteId)
+    this.history = []
     this.deferredOperations = []
   }
 
@@ -64,11 +65,23 @@ class Peer {
 
   performRandomEdit (random) {
     const {start, extent} = getRandomDocumentPositionAndExtent(random, this.document)
-    const operation = random(2)
-      ? new Operation('delete', start, this.document.getTextFromPointAndExtent(start, extent), this.siteId)
-      : new Operation('insert', start, buildRandomLines(random, 5), this.siteId)
-    this.document.apply(operation)
-    const operationToSend = this.documentReplica.pushLocal(operation)
+    const k = random(10)
+    let operationToApply, operationToSend
+    if (k < 2 && this.history.length > 0) {
+      const result = this.documentReplica.undoLocal(this.history.pop())
+      operationToApply = result.transformedOperation
+      operationToSend = result.invertedOperation
+    } else if (k < 6) {
+      operationToApply = new Operation('insert', start, buildRandomLines(random, 5), this.siteId)
+      operationToSend = this.documentReplica.pushLocal(operationToApply)
+      this.history.push(operationToSend)
+    } else {
+      operationToApply = new Operation('delete', start, this.document.getTextFromPointAndExtent(start, extent), this.siteId)
+      operationToSend = this.documentReplica.pushLocal(operationToApply)
+      this.history.push(operationToSend)
+    }
+
+    this.document.apply(operationToApply)
     this.log('Sending', operationToSend.toString())
     this.send(operationToSend)
   }
@@ -80,6 +93,6 @@ class Peer {
   }
 
   log (...message) {
-    // console.log(`Site ${this.siteId}`, ...message)
+    console.log(`Site ${this.siteId}`, ...message)
   }
 }
