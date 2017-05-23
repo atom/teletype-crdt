@@ -31,9 +31,10 @@ suite('DocumentReplica', () => {
     const initialSeed = Date.now()
     const peerCount = 2
     for (var i = 0; i < 1; i++) {
-      const peers = Peer.buildNetwork(peerCount, 'ABCDEFG\nHIJKLMN\NOPQRSTU\nVWXYZ')
+      // console.log(i);
+      const peers = Peer.buildNetwork(peerCount, 'ABCDEFG\nHIJKLMN\nOPQRSTU\nVWXYZ')
       let seed = initialSeed + i
-      seed = 1495537765462
+      seed = 1495547254875
       const failureMessage = `Random seed: ${seed}`
       try {
         const random = Random(seed)

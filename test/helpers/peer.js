@@ -38,11 +38,12 @@ class Peer {
   }
 
   receive (operation) {
-    this.log('Received', operation.toString())
+    this.log('REMOTE: Received', operation.toString())
     if (operation.contextVector.isSubsetOf(this.documentReplica.documentState)) {
       const transformedOperation = this.documentReplica.pushRemote(operation)
-      this.log('Transforming it and applying it', transformedOperation.toString())
+      this.log('REMOTE: Transforming it and applying it', transformedOperation.toString())
       this.document.apply(transformedOperation)
+      this.log('REMOTE: Text after operation', JSON.stringify(this.document.text))
       this.retryDeferredOperations()
     } else {
       this.log('Deferring it')
@@ -70,7 +71,7 @@ class Peer {
     if (k < 2 && this.history.length > 0) {
       const result = this.documentReplica.undoLocal(this.history.pop())
       operationToApply = result.transformedOperation
-      operationToSend = result.invertedOperation
+      operationToSend = result.inverseOperation
     } else if (k < 6) {
       operationToApply = new Operation('insert', start, buildRandomLines(random, 5), this.siteId)
       operationToSend = this.documentReplica.pushLocal(operationToApply)
@@ -82,7 +83,8 @@ class Peer {
     }
 
     this.document.apply(operationToApply)
-    this.log('Sending', operationToSend.toString())
+    this.log('LOCAL:  Generating and sending', operationToSend.toString())
+    this.log('LOCAL:  Text after operation', JSON.stringify(this.document.text))
     this.send(operationToSend)
   }
 
