@@ -28,11 +28,12 @@ suite('DocumentReplica', () => {
   test('replica convergence with random operations', function () {
     this.timeout(Infinity)
     const initialSeed = Date.now()
-    const peerCount = 5
-    for (var i = 0; i < 1000; i++) {
-      const peers = Peer.buildNetwork(peerCount, 'ABCDEFG\nHIJKLMN\NOPQRSTU\nVWXYZ')
+    const peerCount = 2
+    for (var i = 0; i < 10000; i++) {
+      const peers = Peer.buildNetwork(peerCount, 'ABCDEFG\nHIJKLMN\nOPQRSTU\nVWXYZ')
       let seed = initialSeed + i
       // seed = 1
+      // global.enableLog = true
       const failureMessage = `Random seed: ${seed}`
       try {
         const random = Random(seed)

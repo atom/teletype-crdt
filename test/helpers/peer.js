@@ -25,6 +25,7 @@ class Peer {
     this.outboxes = new Map()
     this.document = new Document(text)
     this.documentReplica = new DocumentReplica(siteId)
+    this.history = []
     this.deferredOperations = []
   }
 
@@ -42,6 +43,7 @@ class Peer {
       const transformedOperation = this.documentReplica.pushRemote(operation)
       this.log('Transforming it and applying it', operationHelpers.format(transformedOperation))
       this.document.apply(transformedOperation)
+      this.log('Document', JSON.stringify(this.document.text))
       this.retryDeferredOperations()
     } else {
       this.log('Deferring it')
@@ -64,13 +66,27 @@ class Peer {
 
   performRandomEdit (random) {
     const {start, extent} = getRandomDocumentPositionAndExtent(random, this.document)
-    const operation = random(2)
-      ? {type: 'delete', start, text: this.document.getTextFromPointAndExtent(start, extent)}
-      : {type: 'insert', start, text: buildRandomLines(random, 5)}
-    this.document.apply(operation)
-    const operationToSend = this.documentReplica.pushLocal(operation)
-    this.log('Sending', operationHelpers.format(operationToSend))
+    const k = random(10)
+    let operationToApply, operationToSend
+    if (k < 2 && this.history.length > 0) {
+      const result = this.documentReplica.undoLocal(this.history.pop())
+      operationToApply = result.operationToApply
+      operationToSend = result.operationToSend
+    } else if (k < 6) {
+      operationToApply = {type: 'insert', start, text: buildRandomLines(random, 5)}
+      operationToSend = this.documentReplica.pushLocal(operationToApply)
+      this.history.push(operationToSend)
+    } else {
+      operationToApply = {type: 'delete', start, text: this.document.getTextFromPointAndExtent(start, extent)}
+      operationToSend = this.documentReplica.pushLocal(operationToApply)
+      this.history.push(operationToSend)
+    }
+
+    this.document.apply(operationToApply)
+    this.log('Applying', operationHelpers.format(operationToApply))
+    this.log('Document', JSON.stringify(this.document.text))
     this.send(operationToSend)
+    this.log('Sending', operationHelpers.format(operationToSend))
   }
 
   deliverRandomOperation (random) {
@@ -80,6 +96,8 @@ class Peer {
   }
 
   log (...message) {
-    // console.log(`Site ${this.siteId}`, ...message)
+    if (global.enableLog) {
+      console.log(`Site ${this.siteId}`, ...message)
+    }
   }
 }

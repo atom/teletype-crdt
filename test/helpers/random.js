@@ -33,17 +33,11 @@ function buildRandomLine (random) {
   for (let i = 0; i < random(5); i++) {
     const n = random(10)
 
-    if (n < 2) {
-      line.push('\t')
-    } else if (n < 4) {
+    if (line.length > 0 && !/\s/.test(line[line.length - 1])) {
       line.push(' ')
-    } else {
-      if (line.length > 0 && !/\s/.test(line[line.length - 1])) {
-        line.push(' ')
-      }
-
-      line.push(WORDS[random(WORDS.length)])
     }
+
+    line.push(WORDS[random(WORDS.length)])
   }
 
   return line.join('')
