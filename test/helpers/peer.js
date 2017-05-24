@@ -38,7 +38,7 @@ class Peer {
   }
 
   receive (operation) {
-    this.log('Received', operationHelpers.format(operation))
+    this.log('Received from Site ' + operation.siteId, operationHelpers.format(operation))
     if (operation.contextVector.isSubsetOf(this.documentReplica.documentState)) {
       const transformedOperation = this.documentReplica.pushRemote(operation)
       this.log('Transforming it and applying it', operationHelpers.format(transformedOperation))
