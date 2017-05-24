@@ -9,24 +9,26 @@ suite('Inclusion Transform Function', () => {
     this.timeout(Infinity)
 
     const initialSeed = Date.now()
-    for (var iteration = 0; iteration < 1000; iteration++) {
+    for (var iteration = 0; iteration < 5000; iteration++) {
       let seed = initialSeed + iteration
       const failureMessage = `Random seed: ${seed}`
       const random = Random(seed)
       const operations = []
-      const document = new Document('ABCDEF\nGHIJKL\nMNOPQR\n')
-      for (var i = 0; i < 3; i++) {
+      const permutationsCount = 3
+      const document = new Document('ABCDEFG\nHIJKLMN\nOPQRSTU\nVWXYZ')
+      for (var i = 0; i < permutationsCount; i++) {
         const {start, extent} = getRandomDocumentPositionAndExtent(random, document)
-        const siteId = i
+        const siteId = random(permutationsCount)
         if (random(2)) {
-          operations.push({type: 'delete', start, text: document.getTextFromPointAndExtent(start, extent), siteId})
+          operations.push({type: 'delete', start, text: document.getTextFromPointAndExtent(start, extent), siteId, localTimestamp: i})
         } else {
-          operations.push({type: 'insert', start, text: buildRandomLines(random, 5), siteId})
+          operations.push({type: 'insert', start, text: buildRandomLines(random, 4), siteId, localTimestamp: i})
         }
       }
 
       const finalTexts = []
-      for (const permutation of permute(operations)) {
+      const permutations = permute(operations)
+      for (const permutation of permutations) {
         const documentCopy = new Document(document.text)
         documentCopy.apply(permutation[0])
         documentCopy.apply(inclusionTransform(permutation[1], permutation[0]))
