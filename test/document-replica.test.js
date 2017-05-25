@@ -6,11 +6,31 @@ const Random = require('random-seed')
 const {Operation} = require('../lib/operations')
 
 suite('DocumentReplica', () => {
+  test.only('concurrent inserts at 0', () => {
+    const replica1Document = new Document('')
+    const replica1 = new DocumentReplica(1)
+    const replica2Document = new Document('')
+    const replica2 = new DocumentReplica(2)
+
+    const op1 = {type: 'insert', position: 0, text: 'a'}
+    const op1ToSend = replica1.applyLocal(op1)
+    replica1Document.apply(op1)
+
+    const op2 = {type: 'insert', position: 0, text: 'b'}
+    const op2ToSend = replica2.applyLocal(op2)
+    replica2Document.apply(op2)
+
+    replica1Document.apply(replica1.applyRemote(op2ToSend))
+    replica2Document.apply(replica2.applyRemote(op1ToSend))
+    assert.equal(replica1Document.text, 'ab')
+    assert.equal(replica2Document.text, 'ab')
+  })
+
   test('push local or remote operation', () => {
     const replica1 = new DocumentReplica(0)
     const replica2 = replica1.copy(1)
-    const op1 = replica1.pushLocal(new Operation('insert', {row: 0, column: 0}, 'b'))
-    const op2 = replica2.pushLocal(new Operation('insert', {row: 0, column: 0}, 'a'))
+    const op1 = replica1.pushLocal(new Operation('insert', 0, 'b'))
+    const op2 = replica2.pushLocal(new Operation('insert', 0, 'a'))
     const op1B = replica2.pushRemote(op1)
     const op2B = replica1.pushRemote(op2)
 
