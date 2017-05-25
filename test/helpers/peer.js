@@ -1,4 +1,4 @@
-const {getRandomDocumentPositionAndExtent, buildRandomLines} = require('./random')
+const {buildRandomText} = require('./random')
 const Document = require('./document')
 const DocumentReplica = require('../../lib/document-replica')
 const {Operation} = require('../../lib/operations')
@@ -8,7 +8,7 @@ class Peer {
   static buildNetwork (n, text) {
     const peers = []
     for (var i = 0; i < n; i++) {
-      peers.push(new Peer(i, text))
+      peers.push(new Peer(i + 1, text))
     }
 
     for (var i = 0; i < n; i++) {
@@ -37,11 +37,9 @@ class Peer {
   }
 
   receive (operation) {
-    this.log('Received', operation.toString())
-    if (operation.contextVector.isSubsetOf(this.documentReplica.documentState)) {
-      const transformedOperation = this.documentReplica.pushRemote(operation)
-      this.log('Transforming it and applying it', transformedOperation.toString())
-      this.document.apply(transformedOperation)
+    this.log('Received', operation)
+    if (this.documentReplica.canApplyRemote(operation)) {
+      this.document.apply(this.documentReplica.applyRemote(operation))
       this.retryDeferredOperations()
     } else {
       this.log('Deferring it')
@@ -63,13 +61,11 @@ class Peer {
   }
 
   performRandomEdit (random) {
-    const {start, extent} = getRandomDocumentPositionAndExtent(random, this.document)
-    const operation = random(2)
-      ? new Operation('delete', start, this.document.getTextFromPointAndExtent(start, extent), this.siteId)
-      : new Operation('insert', start, buildRandomLines(random, 5), this.siteId)
+    const position = random(this.document.text.length)
+    const operation = {type: 'insert', position, text: buildRandomText(random, 1)}
     this.document.apply(operation)
-    const operationToSend = this.documentReplica.pushLocal(operation)
-    this.log('Sending', operationToSend.toString())
+    const operationToSend = this.documentReplica.applyLocal(operation)
+    this.log('Sending', operationToSend)
     this.send(operationToSend)
   }
 
@@ -80,6 +76,6 @@ class Peer {
   }
 
   log (...message) {
-    // console.log(`Site ${this.siteId}`, ...message)
+    console.log(`Site ${this.siteId}`, ...message)
   }
 }

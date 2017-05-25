@@ -6,7 +6,7 @@ const Random = require('random-seed')
 const {Operation} = require('../lib/operations')
 
 suite('DocumentReplica', () => {
-  test.only('concurrent inserts at 0', () => {
+  test('concurrent inserts at 0', () => {
     const replica1Document = new Document('')
     const replica1 = new DocumentReplica(1)
     const replica2Document = new Document('')
@@ -26,7 +26,7 @@ suite('DocumentReplica', () => {
     assert.equal(replica2Document.text, 'ab')
   })
 
-  test.only('concurrent inserts at the same position inside a previous insertion', () => {
+  test('concurrent inserts at the same position inside a previous insertion', () => {
     const replica1Document = new Document('')
     const replica1 = new DocumentReplica(1)
     const replica2Document = new Document('')
@@ -53,7 +53,7 @@ suite('DocumentReplica', () => {
     assert.equal(replica2Document.text, 'AB+++***CDEFG')
   })
 
-  test.only('concurrent inserts at different positions inside a previous insertion', () => {
+  test('concurrent inserts at different positions inside a previous insertion', () => {
     const replica1Document = new Document('')
     const replica1 = new DocumentReplica(1)
     const replica2Document = new Document('')
@@ -100,18 +100,18 @@ suite('DocumentReplica', () => {
     assert.equal(replica2Document.text, 'ab')
   })
 
-  test('replica convergence with random operations', function () {
+  test.only('replica convergence with random operations', function () {
     this.timeout(Infinity)
     const initialSeed = Date.now()
-    const peerCount = 5
-    for (var i = 0; i < 1000; i++) {
-      const peers = Peer.buildNetwork(peerCount, 'ABCDEFG\nHIJKLMN\NOPQRSTU\nVWXYZ')
+    const peerCount = 2
+    for (var i = 0; i < 1; i++) {
+      const peers = Peer.buildNetwork(peerCount, '')
       let seed = initialSeed + i
-      // seed = 1
+      seed = 1495719714644
       const failureMessage = `Random seed: ${seed}`
       try {
         const random = Random(seed)
-        for (var j = 0; j < 15; j++) {
+        for (var j = 0; j < 3; j++) {
           const peersWithOutboundOperations = peers.filter(p => !p.isOutboxEmpty())
           if (peersWithOutboundOperations.length === 0 || random(2)) {
             const peer = peers[random(peerCount)]
@@ -130,6 +130,7 @@ suite('DocumentReplica', () => {
           peer.deliverRandomOperation(random)
         }
 
+        console.log(peers.map(p => p.document.text))
         for (var j = 0; j < peerCount - 1; j++) {
           assert.equal(peers[j].document.text, peers[j + 1].document.text, failureMessage)
         }
