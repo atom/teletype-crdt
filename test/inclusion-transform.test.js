@@ -1,6 +1,5 @@
 const assert = require('assert')
 const inclusionTransform = require('../lib/inclusion-transform')
-const {getRandomDocumentPositionAndExtent, buildRandomLines} = require('./helpers/random')
 const Random = require('random-seed')
 const Document = require('./helpers/document')
 

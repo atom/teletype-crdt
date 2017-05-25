@@ -1,4 +1,3 @@
-const {getRandomDocumentPositionAndExtent, buildRandomLines} = require('./random')
 const Document = require('./document')
 const DocumentReplica = require('../../lib/document-replica')
 const operationHelpers = require('../../lib/operation-helpers')
@@ -38,15 +37,15 @@ class Peer {
   }
 
   receive (operation) {
-    this.log('Received from Site ' + operation.siteId, operationHelpers.format(operation))
+    this.log('Received', operationHelpers.format(operation))
     if (operation.contextVector.isSubsetOf(this.documentReplica.documentState)) {
       const transformedOperation = this.documentReplica.pushRemote(operation)
-      this.log('Transforming it and applying it', operationHelpers.format(transformedOperation))
+      this.log('Applying', operationHelpers.format(transformedOperation))
       this.document.apply(transformedOperation)
       this.log('Document', JSON.stringify(this.document.text))
       this.retryDeferredOperations()
     } else {
-      this.log('Deferring it')
+      this.log('Deferring')
       this.deferredOperations.push(operation)
     }
   }
@@ -65,19 +64,19 @@ class Peer {
   }
 
   performRandomEdit (random) {
-    const {start, extent} = getRandomDocumentPositionAndExtent(random, this.document)
+    const position = random(this.document.text.length)
     const k = random(10)
     let operationToApply, operationToSend
     if (k < 2 && this.history.length > 0) {
       const result = this.documentReplica.undoLocal(this.history.pop())
       operationToApply = result.operationToApply
       operationToSend = result.operationToSend
-    } else if (k < 6) {
-      operationToApply = {type: 'insert', start, text: buildRandomLines(random, 5)}
+    } else if (k < 6 || position === this.document.text.length) {
+      operationToApply = {type: 'insert', position, text: String.fromCharCode(97 + random(24))}
       operationToSend = this.documentReplica.pushLocal(operationToApply)
       this.history.push(operationToSend)
     } else {
-      operationToApply = {type: 'delete', start, text: this.document.getTextFromPointAndExtent(start, extent)}
+      operationToApply = {type: 'delete', position, text: this.document.text[position]}
       operationToSend = this.documentReplica.pushLocal(operationToApply)
       this.history.push(operationToSend)
     }
@@ -86,7 +85,6 @@ class Peer {
     this.log('Applying', operationHelpers.format(operationToApply))
     this.log('Document', JSON.stringify(this.document.text))
     this.send(operationToSend)
-    this.log('Sending', operationHelpers.format(operationToSend))
   }
 
   deliverRandomOperation (random) {
