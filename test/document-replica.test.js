@@ -53,6 +53,33 @@ suite('DocumentReplica', () => {
     assert.equal(replica2Document.text, 'AB+++***CDEFG')
   })
 
+  test.only('concurrent inserts at different positions inside a previous insertion', () => {
+    const replica1Document = new Document('')
+    const replica1 = new DocumentReplica(1)
+    const replica2Document = new Document('')
+    const replica2 = new DocumentReplica(2)
+
+    const op0 = {type: 'insert', position: 0, text: 'ABCDEFG'}
+    const op0ToSend = replica1.applyLocal(op0)
+    replica1Document.apply(op0)
+    replica2Document.apply(replica2.applyRemote(op0ToSend))
+    assert.equal(replica1Document.text, 'ABCDEFG')
+    assert.equal(replica2Document.text, 'ABCDEFG')
+
+    const op1 = {type: 'insert', position: 6, text: '+++'}
+    const op1ToSend = replica1.applyLocal(op1)
+    replica1Document.apply(op1)
+
+    const op2 = {type: 'insert', position: 2, text: '***'}
+    const op2ToSend = replica2.applyLocal(op2)
+    replica2Document.apply(op2)
+
+    replica1Document.apply(replica1.applyRemote(op2ToSend))
+    replica2Document.apply(replica2.applyRemote(op1ToSend))
+    assert.equal(replica1Document.text, 'AB***CDEF+++G')
+    assert.equal(replica2Document.text, 'AB***CDEF+++G')
+  })
+
   test('push local or remote operation', () => {
     const replica1 = new DocumentReplica(0)
     const replica2 = replica1.copy(1)
