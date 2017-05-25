@@ -86,7 +86,6 @@ class Peer {
     this.log('Applying', operationHelpers.format(operationToApply))
     this.log('Document', JSON.stringify(this.document.text))
     this.send(operationToSend)
-    this.log('Sending', operationHelpers.format(operationToSend))
   }
 
   deliverRandomOperation (random) {
@@ -97,7 +96,7 @@ class Peer {
 
   log (...message) {
     if (global.enableLog) {
-      console.log(`Site ${this.siteId}`, ...message)
+      // console.log(`Site ${this.siteId}`, ...message)
     }
   }
 }

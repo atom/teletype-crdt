@@ -29,7 +29,7 @@ suite('DocumentReplica', () => {
     this.timeout(Infinity)
     const initialSeed = Date.now()
     const peerCount = 3
-    for (var i = 0; i < 1; i++) {
+    for (var i = 0; i < 100; i++) {
       const peers = Peer.buildNetwork(peerCount, 'ABCDEFG\nHIJKLMN\nOPQRSTU\nVWXYZ')
       let seed = initialSeed + i
       seed = 1495623010068

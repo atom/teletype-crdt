@@ -1,10 +1,35 @@
 const assert = require('assert')
 const inclusionTransform = require('../lib/inclusion-transform')
+const {invert} = require('../lib/operation-helpers')
 const {getRandomDocumentPositionAndExtent, buildRandomLines} = require('./helpers/random')
 const Random = require('random-seed')
 const Document = require('./helpers/document')
 
 suite('Inclusion Transform Function', () => {
+  test('problematic undo case', () => {
+
+    const doc1 = new Document('ABCDEFG\nHIJKLMN\nOPQRSTU\nVWXYZ')
+    const doc2 = doc1.copy()
+
+    const o1 = {type: 'delete', start: {row: 0, column: 2}, text: 'CDEFG'} // site: 2, context: {}
+    const o2 = {type: 'insert', start: {row: 0, column: 2}, text: 'CDEFG'} // site: 2, context: {o1}
+    const o3 = {type: 'delete', start: {row: 0, column: 4}, text: 'EFG\nHIJKL'} // site: 0, context: {}
+    const o4 = {type: 'delete', start: {row: 0, column: 1}, text: 'B\nHI'} // site: 1, context: {o1}
+
+    const it = inclusionTransform
+
+
+    const x = it(invert(it(invert(o2), o3)), it(o4, it(o3, o1)))
+    const y =
+
+    doc1.apply()
+    doc1.apply(x)
+
+
+    doc2.apply(y)
+  })
+
+
   test('respects the CE-CP1 and CP2 convergence and behavior preservation properties', function () {
     this.timeout(Infinity)
 
