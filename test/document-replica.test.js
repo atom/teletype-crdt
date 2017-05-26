@@ -25,19 +25,19 @@ suite('DocumentReplica', () => {
     assert.equal(replica2Document.text, 'ab')
   })
 
-  test.only('replica convergence with random operations', function () {
+  test('replica convergence with random operations', function () {
     this.timeout(Infinity)
     const initialSeed = Date.now()
-    const peerCount = 3
-    for (var i = 0; i < 1; i++) {
+    const peerCount = 10
+    for (var i = 0; i < 1000; i++) {
       const peers = Peer.buildNetwork(peerCount, 'ABCDEFG\nHIJKLMN\nOPQRSTU\nVWXYZ')
       let seed = initialSeed + i
-      seed = 1495623010068
-      global.enableLog = true
+      // seed = 1
+      // global.enableLog = true
       const failureMessage = `Random seed: ${seed}`
       try {
         const random = Random(seed)
-        for (var j = 0; j < 5; j++) {
+        for (var j = 0; j < 15; j++) {
           const peersWithOutboundOperations = peers.filter(p => !p.isOutboxEmpty())
           if (peersWithOutboundOperations.length === 0 || random(2)) {
             const peer = peers[random(peerCount)]
