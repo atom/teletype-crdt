@@ -69,9 +69,11 @@ class Peer {
     const k = random(10)
     let operationToApply, operationToSend
     if (k < 2 && this.history.length > 0) {
-      const result = this.documentReplica.undoLocal(this.history.pop())
+      const i = random(this.history.length)
+      const result = this.documentReplica.undoLocal(this.history[i])
       operationToApply = result.operationToApply
       operationToSend = result.operationToSend
+      this.history.splice(i, 1)
     } else if (k < 6) {
       operationToApply = {type: 'insert', start, text: buildRandomLines(random, 5)}
       operationToSend = this.documentReplica.pushLocal(operationToApply)
