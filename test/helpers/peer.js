@@ -25,7 +25,8 @@ class Peer {
     this.outboxes = new Map()
     this.document = new Document(text)
     this.documentReplica = new DocumentReplica(siteId)
-    this.history = []
+    this.undoStack = []
+    this.redoStack = []
     this.deferredOperations = []
   }
 
@@ -68,20 +69,28 @@ class Peer {
     const {start, extent} = getRandomDocumentPositionAndExtent(random, this.document)
     const k = random(10)
     let operationToApply, operationToSend
-    if (k < 2 && this.history.length > 0) {
-      const i = random(this.history.length)
-      const result = this.documentReplica.undoLocal(this.history[i])
+    if (k < 2 && this.undoStack.length > 0) {
+      const i = random(this.undoStack.length)
+      const result = this.documentReplica.undoLocal(this.undoStack[i])
       operationToApply = result.operationToApply
       operationToSend = result.operationToSend
-      this.history.splice(i, 1)
+      this.undoStack.splice(i, 1)
+      this.redoStack.push(operationToApply)
+    } else if (k < 4 && this.redoStack.length > 0) {
+      const i = random(this.redoStack.length)
+      const result = this.documentReplica.undoLocal(this.redoStack[i])
+      operationToApply = result.operationToApply
+      operationToSend = result.operationToSend
+      this.redoStack.splice(i, 1)
+      this.undoStack.push(operationToApply)
     } else if (k < 6) {
       operationToApply = {type: 'insert', start, text: buildRandomLines(random, 5)}
       operationToSend = this.documentReplica.pushLocal(operationToApply)
-      this.history.push(operationToSend)
+      this.undoStack.push(operationToSend)
     } else {
       operationToApply = {type: 'delete', start, text: this.document.getTextFromPointAndExtent(start, extent)}
       operationToSend = this.documentReplica.pushLocal(operationToApply)
-      this.history.push(operationToSend)
+      this.undoStack.push(operationToSend)
     }
 
     this.document.apply(operationToApply)
