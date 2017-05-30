@@ -1,7 +1,6 @@
 const {buildRandomText} = require('./random')
 const Document = require('./document')
 const DocumentReplica = require('../../lib/document-replica')
-const {Operation} = require('../../lib/operations')
 
 module.exports =
 class Peer {

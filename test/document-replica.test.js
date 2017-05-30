@@ -3,7 +3,6 @@ const Document = require('./helpers/document')
 const DocumentReplica = require('../lib/document-replica')
 const Peer = require('./helpers/peer')
 const Random = require('random-seed')
-const {Operation} = require('../lib/operations')
 
 suite('DocumentReplica', () => {
   test('concurrent inserts at 0', () => {
@@ -84,7 +83,7 @@ suite('DocumentReplica', () => {
     this.timeout(Infinity)
     const initialSeed = Date.now()
     const peerCount = 5
-    for (var i = 0; i < 5000; i++) {
+    for (var i = 0; i < 1000; i++) {
       const peers = Peer.buildNetwork(peerCount, '')
       let seed = initialSeed + i
       // seed = 1496156540936
@@ -93,7 +92,7 @@ suite('DocumentReplica', () => {
       try {
         const random = Random(seed)
         let operationCount = 0
-        while (operationCount < 15) {
+        while (operationCount < 10) {
           const peersWithOutboundOperations = peers.filter(p => !p.isOutboxEmpty())
           if (peersWithOutboundOperations.length === 0 || random(2)) {
             const peer = peers[random(peerCount)]
