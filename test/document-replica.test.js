@@ -6,7 +6,7 @@ const Random = require('random-seed')
 const {Operation} = require('../lib/operations')
 
 suite('DocumentReplica', () => {
-  test('concurrent inserts at 0', () => {
+  test.only('concurrent inserts at 0', () => {
     const replica1Document = new Document('')
     const replica1 = new DocumentReplica(1)
     const replica2Document = new Document('')
@@ -100,7 +100,7 @@ suite('DocumentReplica', () => {
     assert.equal(replica2Document.text, 'ab')
   })
 
-  test.only('replica convergence with random operations', function () {
+  test('replica convergence with random operations', function () {
     this.timeout(Infinity)
     const initialSeed = Date.now()
     const peerCount = 2
