@@ -40,6 +40,7 @@ class Peer {
     this.log('Received', operation)
     if (this.documentReplica.canApplyRemote(operation)) {
       this.document.apply(this.documentReplica.applyRemote(operation))
+      this.log('Text', this.document.text)
       this.retryDeferredOperations()
     } else {
       this.log('Deferring it')
@@ -64,9 +65,10 @@ class Peer {
     const position = random(this.document.text.length)
     const operation = {type: 'insert', position, text: buildRandomText(random, 1)}
     this.document.apply(operation)
+    this.log('Generating', operation)
     const operationToSend = this.documentReplica.applyLocal(operation)
-    this.log('Sending', operationToSend)
     this.send(operationToSend)
+    this.log('Text', this.document.text)
   }
 
   deliverRandomOperation (random) {
@@ -76,6 +78,8 @@ class Peer {
   }
 
   log (...message) {
-    console.log(`Site ${this.siteId}`, ...message)
+    if (global.enableLog) {
+      console.log(`Site ${this.siteId}`, ...message)
+    }
   }
 }
