@@ -38,7 +38,9 @@ class Peer {
   receive (operation) {
     this.log('Received', operation)
     if (this.documentReplica.canApplyRemote(operation)) {
-      this.document.applyMany(this.documentReplica.applyRemote(operation))
+      const opsToApply = this.documentReplica.applyRemote(operation)
+      this.log('Applying', opsToApply)
+      this.document.applyMany(opsToApply)
       this.log('Text', this.document.text)
       this.retryDeferredOperations()
     } else {
@@ -65,7 +67,7 @@ class Peer {
     const position = random(textLength)
     let operation
     if (random(2) < 1 && textLength - position > 0) {
-      operation = {type: 'delete', position, extent: random.intBetween(1, textLength - position)}
+      operation = {type: 'delete', position, extent: random.intBetween(1, textLength - position - 1)}
     } else {
       operation = {type: 'insert', position, text: buildRandomText(random, 1)}
     }
