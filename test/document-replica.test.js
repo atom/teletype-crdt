@@ -196,10 +196,16 @@ suite('DocumentReplica', () => {
         const random = Random(seed)
         let operationCount = 0
         while (operationCount < 10) {
+          const k = random(10)
           const peersWithOutboundOperations = peers.filter(p => !p.isOutboxEmpty())
           if (peersWithOutboundOperations.length === 0 || random(2)) {
             const peer = peers[random(peerCount)]
-            peer.performRandomEdit(random)
+            if (random(10) < 2 && peer.history.length > 0) {
+              peer.undoRandomOperation(random)
+            } else {
+              peer.performRandomEdit(random)
+            }
+
             operationCount++
           } else {
             const peer = peersWithOutboundOperations[random(peersWithOutboundOperations.length)]

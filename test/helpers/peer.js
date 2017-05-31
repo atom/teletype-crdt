@@ -25,6 +25,7 @@ class Peer {
     this.document = new Document(text)
     this.documentReplica = new DocumentReplica(siteId)
     this.deferredOperations = []
+    this.history = []
   }
 
   connect (peer) {
@@ -42,6 +43,7 @@ class Peer {
       this.log('Applying', opsToApply)
       this.document.applyMany(opsToApply)
       this.log('Text', this.document.text)
+      this.history.push(operation)
       this.retryDeferredOperations()
     } else {
       this.log('Deferring it')
@@ -77,6 +79,17 @@ class Peer {
     const operationToSend = this.documentReplica.applyLocal(operation)
     this.send(operationToSend)
     this.log('Text', this.document.text)
+    this.history.push(operationToSend)
+  }
+
+  undoRandomOperation (random) {
+    const opToUndo = this.history[random(this.history.length)]
+    this.log('Undoing', opToUndo)
+    const {opsToApply, opToSend} = this.documentReplica.undoLocal(opToUndo)
+    this.log('Applying', opsToApply)
+    this.document.applyMany(opsToApply)
+    this.log('Text', this.document.text)
+    this.send(opToSend)
   }
 
   deliverRandomOperation (random) {
