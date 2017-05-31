@@ -38,7 +38,7 @@ class Peer {
   receive (operation) {
     this.log('Received', operation)
     if (this.documentReplica.canApplyRemote(operation)) {
-      this.document.apply(this.documentReplica.applyRemote(operation))
+      this.document.applyMany(this.documentReplica.applyRemote(operation))
       this.log('Text', this.document.text)
       this.retryDeferredOperations()
     } else {

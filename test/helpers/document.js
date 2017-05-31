@@ -1,3 +1,4 @@
+const assert = require('assert')
 const {characterIndexForPosition, extentForText, traverse} = require('../../lib/point-helpers')
 
 module.exports =
@@ -6,9 +7,13 @@ class Document {
     this.text = text
   }
 
-  apply (operation) {
-    if (!operation) return
+  applyMany (operations) {
+    for (let i = operations.length - 1; i >= 0; i--) {
+      this.apply(operations[i])
+    }
+  }
 
+  apply (operation) {
     if (operation.type === 'delete') {
       this.delete(operation.position, operation.extent)
     } else if (operation.type === 'insert') {
@@ -21,6 +26,8 @@ class Document {
   }
 
   delete (position, extent) {
+    assert(position < this.text.length)
+    assert(position + extent <= this.text.length)
     this.text = this.text.slice(0, position) + this.text.slice(position + extent)
   }
 }

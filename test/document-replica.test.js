@@ -19,8 +19,8 @@ suite('DocumentReplica', () => {
     const op2ToSend = replica2.applyLocal(op2)
     replica2Document.apply(op2)
 
-    replica1Document.apply(replica1.applyRemote(op2ToSend))
-    replica2Document.apply(replica2.applyRemote(op1ToSend))
+    replica1Document.applyMany(replica1.applyRemote(op2ToSend))
+    replica2Document.applyMany(replica2.applyRemote(op1ToSend))
     assert.equal(replica1Document.text, 'ab')
     assert.equal(replica2Document.text, 'ab')
   })
@@ -34,7 +34,7 @@ suite('DocumentReplica', () => {
     const op0 = {type: 'insert', position: 0, text: 'ABCDEFG'}
     const op0ToSend = replica1.applyLocal(op0)
     replica1Document.apply(op0)
-    replica2Document.apply(replica2.applyRemote(op0ToSend))
+    replica2Document.applyMany(replica2.applyRemote(op0ToSend))
     assert.equal(replica1Document.text, 'ABCDEFG')
     assert.equal(replica2Document.text, 'ABCDEFG')
 
@@ -46,8 +46,8 @@ suite('DocumentReplica', () => {
     const op2ToSend = replica2.applyLocal(op2)
     replica2Document.apply(op2)
 
-    replica1Document.apply(replica1.applyRemote(op2ToSend))
-    replica2Document.apply(replica2.applyRemote(op1ToSend))
+    replica1Document.applyMany(replica1.applyRemote(op2ToSend))
+    replica2Document.applyMany(replica2.applyRemote(op1ToSend))
     assert.equal(replica1Document.text, 'AB+++***CDEFG')
     assert.equal(replica2Document.text, 'AB+++***CDEFG')
   })
@@ -61,7 +61,7 @@ suite('DocumentReplica', () => {
     const op0 = {type: 'insert', position: 0, text: 'ABCDEFG'}
     const op0ToSend = replica1.applyLocal(op0)
     replica1Document.apply(op0)
-    replica2Document.apply(replica2.applyRemote(op0ToSend))
+    replica2Document.applyMany(replica2.applyRemote(op0ToSend))
     assert.equal(replica1Document.text, 'ABCDEFG')
     assert.equal(replica2Document.text, 'ABCDEFG')
 
@@ -73,8 +73,8 @@ suite('DocumentReplica', () => {
     const op2ToSend = replica2.applyLocal(op2)
     replica2Document.apply(op2)
 
-    replica1Document.apply(replica1.applyRemote(op2ToSend))
-    replica2Document.apply(replica2.applyRemote(op1ToSend))
+    replica1Document.applyMany(replica1.applyRemote(op2ToSend))
+    replica2Document.applyMany(replica2.applyRemote(op1ToSend))
     assert.equal(replica1Document.text, 'AB***CDEF+++G')
     assert.equal(replica2Document.text, 'AB***CDEF+++G')
   })
@@ -88,7 +88,7 @@ suite('DocumentReplica', () => {
     const op0 = {type: 'insert', position: 0, text: 'ABCDEFG'}
     const op0ToSend = replica1.applyLocal(op0)
     replica1Document.apply(op0)
-    replica2Document.apply(replica2.applyRemote(op0ToSend))
+    replica2Document.applyMany(replica2.applyRemote(op0ToSend))
     assert.equal(replica1Document.text, 'ABCDEFG')
     assert.equal(replica2Document.text, 'ABCDEFG')
 
@@ -100,11 +100,86 @@ suite('DocumentReplica', () => {
     replica2Document.apply(op2)
     const op2ToSend = replica2.applyLocal(op2)
 
-    replica1Document.apply(replica1.applyRemote(op2ToSend))
-    replica2Document.apply(replica2.applyRemote(op1ToSend))
+    replica1Document.applyMany(replica1.applyRemote(op2ToSend))
+    replica2Document.applyMany(replica2.applyRemote(op1ToSend))
 
     assert.equal(replica1Document.text, 'ABG')
     assert.equal(replica2Document.text, 'ABG')
+  })
+
+  test('undoing an insertion containing other insertions', () => {
+    const replica1Document = new Document('')
+    const replica1 = new DocumentReplica(1)
+    const replica2Document = new Document('')
+    const replica2 = new DocumentReplica(2)
+
+    const op0 = {type: 'insert', position: 0, text: 'ABCDEFG'}
+    const op0ToSend = replica1.applyLocal(op0)
+    replica1Document.apply(op0)
+    replica2Document.applyMany(replica2.applyRemote(op0ToSend))
+
+    const op1 = {type: 'insert', position: 3, text: '***'}
+    const op1ToSend = replica1.applyLocal(op1)
+    replica1Document.apply(op1)
+    replica2Document.applyMany(replica2.applyRemote(op1ToSend))
+
+    const undoOp0 = replica1.undoLocal(op0ToSend.opId)
+    replica1Document.applyMany(undoOp0.opsToApply)
+    replica2Document.applyMany(replica2.applyRemote(undoOp0.opToSend))
+    assert.equal(replica1Document.text, '***')
+    assert.equal(replica2Document.text, '***')
+  })
+
+  test('undoing an insertion containing a deletion', () => {
+    const replica1Document = new Document('')
+    const replica1 = new DocumentReplica(1)
+    const replica2Document = new Document('')
+    const replica2 = new DocumentReplica(2)
+
+    const op0 = {type: 'insert', position: 0, text: 'ABCDEFG'}
+    const op0ToSend = replica1.applyLocal(op0)
+    replica1Document.apply(op0)
+    replica2Document.applyMany(replica2.applyRemote(op0ToSend))
+
+    const op1 = {type: 'delete', position: 3, extent: 3}
+    const op1ToSend = replica1.applyLocal(op1)
+    replica1Document.apply(op1)
+    replica2Document.applyMany(replica2.applyRemote(op1ToSend))
+
+    const undoOp0 = replica1.undoLocal(op0ToSend.opId)
+    replica1Document.applyMany(undoOp0.opsToApply)
+    replica2Document.applyMany(replica2.applyRemote(undoOp0.opToSend))
+    assert.equal(replica1Document.text, '')
+    assert.equal(replica2Document.text, '')
+  })
+
+  test('undoing a deletion that overlaps another deletion', () => {
+    const replica1Document = new Document('')
+    const replica1 = new DocumentReplica(1)
+    const replica2Document = new Document('')
+    const replica2 = new DocumentReplica(2)
+
+    const op0 = {type: 'insert', position: 0, text: 'ABCDEFG'}
+    const op0ToSend = replica1.applyLocal(op0)
+    replica1Document.apply(op0)
+    replica2Document.applyMany(replica2.applyRemote(op0ToSend))
+
+    const op1 = {type: 'delete', position: 1, extent: 3}
+    const op1ToSend = replica1.applyLocal(op1)
+    replica1Document.apply(op1)
+
+    const op2 = {type: 'delete', position: 3, extent: 3}
+    const op2ToSend = replica2.applyLocal(op2)
+    replica2Document.apply(op2)
+
+    replica1Document.applyMany(replica1.applyRemote(op2ToSend))
+    replica2Document.applyMany(replica2.applyRemote(op1ToSend))
+
+    const undoOp2 = replica1.undoLocal(op2ToSend.opId)
+    replica1Document.applyMany(undoOp2.opsToApply)
+    replica2Document.applyMany(replica2.applyRemote(undoOp2.opToSend))
+    assert.equal(replica1Document.text, 'AEFG')
+    assert.equal(replica2Document.text, 'AEFG')
   })
 
   test('replica convergence with random operations', function () {
