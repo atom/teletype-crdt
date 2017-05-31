@@ -79,6 +79,34 @@ suite('DocumentReplica', () => {
     assert.equal(replica2Document.text, 'AB***CDEF+++G')
   })
 
+  test('concurrent overlapping deletions', () => {
+    const replica1Document = new Document('')
+    const replica1 = new DocumentReplica(1)
+    const replica2Document = new Document('')
+    const replica2 = new DocumentReplica(2)
+
+    const op0 = {type: 'insert', position: 0, text: 'ABCDEFG'}
+    const op0ToSend = replica1.applyLocal(op0)
+    replica1Document.apply(op0)
+    replica2Document.apply(replica2.applyRemote(op0ToSend))
+    assert.equal(replica1Document.text, 'ABCDEFG')
+    assert.equal(replica2Document.text, 'ABCDEFG')
+
+    const op1 = {type: 'delete', position: 2, extent: 3}
+    replica1Document.apply(op1)
+    const op1ToSend = replica1.applyLocal(op1)
+
+    const op2 = {type: 'delete', position: 4, extent: 2}
+    replica2Document.apply(op2)
+    const op2ToSend = replica2.applyLocal(op2)
+
+    replica1Document.apply(replica1.applyRemote(op2ToSend))
+    replica2Document.apply(replica2.applyRemote(op1ToSend))
+
+    assert.equal(replica1Document.text, 'ABG')
+    assert.equal(replica2Document.text, 'ABG')
+  })
+
   test('replica convergence with random operations', function () {
     this.timeout(Infinity)
     const initialSeed = Date.now()

@@ -61,8 +61,15 @@ class Peer {
   }
 
   performRandomEdit (random) {
-    const position = random(this.document.text.length)
-    const operation = {type: 'insert', position, text: buildRandomText(random, 1)}
+    const textLength = this.document.text.length
+    const position = random(textLength)
+    let operation
+    if (random(2) < 1 && textLength - position > 0) {
+      operation = {type: 'delete', position, extent: random.intBetween(1, textLength - position)}
+    } else {
+      operation = {type: 'insert', position, text: buildRandomText(random, 1)}
+    }
+
     this.document.apply(operation)
     this.log('Generating', operation)
     const operationToSend = this.documentReplica.applyLocal(operation)

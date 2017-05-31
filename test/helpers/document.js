@@ -7,6 +7,8 @@ class Document {
   }
 
   apply (operation) {
+    if (!operation) return
+
     if (operation.type === 'delete') {
       this.delete(operation.position, operation.extent)
     } else if (operation.type === 'insert') {
