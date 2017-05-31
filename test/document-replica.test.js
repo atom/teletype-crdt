@@ -140,7 +140,11 @@ suite('DocumentReplica', () => {
           peer.deliverRandomOperation(random)
         }
 
-        for (var j = 0; j < peerCount - 1; j++) {
+        for (let j = 0; j < peers.length; j++) {
+          assert.equal(peers[j].document.text, peers[j].documentReplica.getText())
+        }
+
+        for (let j = 0; j < peers.length - 1; j++) {
           assert.equal(peers[j].document.text, peers[j + 1].document.text, failureMessage)
         }
       } catch (e) {
