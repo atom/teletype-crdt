@@ -149,6 +149,7 @@ suite('DocumentReplica', () => {
     const undoOp0 = replica1.undoLocal(op0ToSend.opId)
     replica1Document.applyMany(undoOp0.opsToApply)
     replica2Document.applyMany(replica2.applyRemote(undoOp0.opToSend))
+
     assert.equal(replica1Document.text, '')
     assert.equal(replica2Document.text, '')
   })
@@ -189,7 +190,7 @@ suite('DocumentReplica', () => {
     for (var i = 0; i < 1000; i++) {
       const peers = Peer.buildNetwork(peerCount, '')
       let seed = initialSeed + i
-      // seed = 1496156540936
+      // seed = 1496346683429
       // global.enableLog = true
       const failureMessage = `Random seed: ${seed}`
       try {
@@ -206,10 +207,16 @@ suite('DocumentReplica', () => {
               peer.performRandomEdit(random)
             }
 
+            assert.equal(peer.documentReplica.getText(), peer.document.text)
+            peer.documentReplica.verifyTreeInvariants()
+
             operationCount++
           } else {
             const peer = peersWithOutboundOperations[random(peersWithOutboundOperations.length)]
             peer.deliverRandomOperation(random)
+
+            assert.equal(peer.documentReplica.getText(), peer.document.text)
+            peer.documentReplica.verifyTreeInvariants()
           }
         }
 
