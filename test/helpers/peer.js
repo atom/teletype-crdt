@@ -85,7 +85,7 @@ class Peer {
   undoRandomOperation (random) {
     const opToUndo = this.history[random(this.history.length)]
     this.log('Undoing', opToUndo)
-    const {opsToApply, opToSend} = this.documentReplica.undoLocal(opToUndo)
+    const {opsToApply, opToSend} = this.documentReplica.undoLocal(opToUndo.opId)
     this.log('Applying', opsToApply)
     this.document.applyMany(opsToApply)
     this.log('Text', this.document.text)
