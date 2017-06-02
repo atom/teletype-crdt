@@ -183,6 +183,27 @@ suite('DocumentReplica', () => {
     assert.equal(replica2Document.text, 'AEFG')
   })
 
+  test('inserting in the middle of an undone deletion and then redoing the deletion', () => {
+    const document = new Document('')
+    const replica = new DocumentReplica(1)
+
+    const op0 = {type: 'insert', position: 0, text: 'ABCDEFG'}
+    replica.applyLocal(op0)
+    document.apply(op0)
+
+    const op1 = {type: 'delete', position: 1, extent: 5}
+    const {opId: op1Id} = replica.applyLocal(op1)
+    document.apply(op1)
+    document.applyMany(replica.undoLocal(op1Id).opsToApply)
+
+    const op2 = {type: 'insert', position: 3, text: '***'}
+    replica.applyLocal(op2)
+    document.apply(op2)
+
+    document.applyMany(replica.undoLocal(op1Id).opsToApply)
+    assert.equal(replica.getText(), 'A***G')
+  })
+
   test('replica convergence with random operations', function () {
     this.timeout(Infinity)
     const initialSeed = Date.now()
@@ -208,7 +229,6 @@ suite('DocumentReplica', () => {
             }
 
             assert.equal(peer.documentReplica.getText(), peer.document.text)
-            peer.documentReplica.verifyTreeInvariants()
 
             operationCount++
           } else {
@@ -216,7 +236,6 @@ suite('DocumentReplica', () => {
             peer.deliverRandomOperation(random)
 
             assert.equal(peer.documentReplica.getText(), peer.document.text)
-            peer.documentReplica.verifyTreeInvariants()
           }
         }
 
