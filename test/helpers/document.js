@@ -8,6 +8,8 @@ class Document {
   }
 
   applyMany (operations) {
+    assert(Array.isArray(operations))
+
     for (let i = operations.length - 1; i >= 0; i--) {
       this.apply(operations[i])
     }
@@ -18,6 +20,8 @@ class Document {
       this.delete(operation.position, operation.extent)
     } else if (operation.type === 'insert') {
       this.insert(operation.position, operation.text)
+    } else {
+      throw new Error('Unknown operation type')
     }
   }
 
