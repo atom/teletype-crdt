@@ -2,16 +2,16 @@
   "name": "tachyon",
   "version": "0.1.0",
   "description": "",
-  "main": "./lib/index",
+  "main": "./lib/document-replica",
   "scripts": {
     "test": "node script/test"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/atom/realtime.git"
+    "url": "https://github.com/atom/tachyon.git"
   },
   "bugs": {
-    "url": "https://github.com/atom/realtime/issues"
+    "url": "https://github.com/atom/tachyon/issues"
   },
   "license": "MIT",
   "devDependencies": {
