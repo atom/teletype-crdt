@@ -10,7 +10,7 @@ class Document {
   applyMany (operations) {
     assert(Array.isArray(operations))
 
-    for (let i = operations.length - 1; i >= 0; i--) {
+    for (let i = 0; i < operations.length; i++) {
       this.apply(operations[i])
     }
   }

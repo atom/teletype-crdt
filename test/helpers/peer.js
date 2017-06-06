@@ -38,26 +38,11 @@ class Peer {
 
   receive (operation) {
     this.log('Received', operation)
-    if (this.documentReplica.canApplyRemote(operation)) {
-      const opsToApply = this.documentReplica.applyRemote(operation)
-      this.log('Applying', opsToApply)
-      this.document.applyMany(opsToApply)
-      this.log('Text', this.document.text)
-      this.history.push(operation)
-      this.retryDeferredOperations()
-    } else {
-      this.log('Deferring it')
-      this.deferredOperations.push(operation)
-    }
-  }
-
-  retryDeferredOperations () {
-    const deferredOperations = this.deferredOperations
-    this.deferredOperations = []
-    for (const operation of deferredOperations) {
-      this.log('Retrying deferred operation', operation.toString())
-      this.receive(operation)
-    }
+    const opsToApply = this.documentReplica.applyRemote(operation)
+    this.log('Applying', opsToApply)
+    this.document.applyMany(opsToApply)
+    this.log('Text', this.document.text)
+    this.history.push(operation)
   }
 
   isOutboxEmpty () {
@@ -84,12 +69,14 @@ class Peer {
 
   undoRandomOperation (random) {
     const opToUndo = this.history[random(this.history.length)]
-    this.log('Undoing', opToUndo)
-    const {opsToApply, opToSend} = this.documentReplica.undoLocal(opToUndo.opId)
-    this.log('Applying', opsToApply)
-    this.document.applyMany(opsToApply)
-    this.log('Text', this.document.text)
-    this.send(opToSend)
+    if (this.documentReplica.hasAppliedOperation(opToUndo.opId)) {
+      this.log('Undoing', opToUndo)
+      const {opsToApply, opToSend} = this.documentReplica.undoLocal(opToUndo.opId)
+      this.log('Applying', opsToApply)
+      this.document.applyMany(opsToApply)
+      this.log('Text', this.document.text)
+      this.send(opToSend)
+    }
   }
 
   deliverRandomOperation (random) {

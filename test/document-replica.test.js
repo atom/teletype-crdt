@@ -204,12 +204,11 @@ suite('DocumentReplica', () => {
     assert.equal(replica.getText(), 'A***G')
   })
 
-  test.only('replica convergence with random operations', function () {
+  test('replica convergence with random operations', function () {
     this.timeout(Infinity)
     const initialSeed = Date.now()
     const peerCount = 5
     for (var i = 0; i < 1000; i++) {
-      console.log(i);
       const peers = Peer.buildNetwork(peerCount, '')
       let seed = initialSeed + i
       // seed = 1496346683429
