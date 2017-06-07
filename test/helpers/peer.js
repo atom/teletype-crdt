@@ -1,4 +1,5 @@
-const {buildRandomText} = require('./random')
+const {getRandomDocumentPositionAndExtent, buildRandomLines} = require('./random')
+const {ZERO_POINT, compare} = require('../../lib/point-helpers')
 const Document = require('./document')
 const DocumentReplica = require('../../lib/document-replica')
 
@@ -50,13 +51,12 @@ class Peer {
   }
 
   performRandomEdit (random) {
-    const textLength = this.document.text.length
-    const position = random(textLength)
+    const {position, extent} = getRandomDocumentPositionAndExtent(random, this.document)
     let operation
-    if (random(2) < 1 && textLength - position > 0) {
-      operation = {type: 'delete', position, extent: random.intBetween(1, textLength - position - 1)}
+    if (random(2) < 1 && compare(extent, ZERO_POINT) > 0) {
+      operation = {type: 'delete', position, extent}
     } else {
-      operation = {type: 'insert', position, text: buildRandomText(random, 1)}
+      operation = {type: 'insert', position, text: buildRandomLines(random, 3)}
     }
 
     this.document.apply(operation)

@@ -1,5 +1,5 @@
 const assert = require('assert')
-const {characterIndexForPosition, extentForText, traverse} = require('../../lib/point-helpers')
+const {characterIndexForPosition, extentForText, compare, traverse} = require('../../lib/point-helpers')
 
 module.exports =
 class Document {
@@ -26,12 +26,27 @@ class Document {
   }
 
   insert (position, text) {
-    this.text = this.text.slice(0, position) + text + this.text.slice(position)
+    const index = characterIndexForPosition(this.text, position)
+    this.text = this.text.slice(0, index) + text + this.text.slice(index)
   }
 
-  delete (position, extent) {
-    assert(position < this.text.length)
-    assert(position + extent <= this.text.length)
-    this.text = this.text.slice(0, position) + this.text.slice(position + extent)
+  delete (startPosition, extent) {
+    const endPosition = traverse(startPosition, extent)
+    const textExtent = extentForText(this.text)
+    assert(compare(startPosition, textExtent) < 0)
+    assert(compare(endPosition, textExtent) <= 0)
+    const startIndex = characterIndexForPosition(this.text, startPosition)
+    const endIndex = characterIndexForPosition(this.text, endPosition)
+    this.text = this.text.slice(0, startIndex) + this.text.slice(endIndex)
+  }
+
+  lineForRow (row) {
+    const startIndex = characterIndexForPosition(this.text, {row, column: 0})
+    const endIndex = characterIndexForPosition(this.text, {row: row + 1, column: 0}) - 1
+    return this.text.slice(startIndex, endIndex)
+  }
+
+  getLineCount () {
+    return extentForText(this.text).row + 1
   }
 }
