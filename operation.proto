@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+message Operation {
+  oneof kind {
+    Insertion insertion = 1;
+    Deletion deletion = 2;
+    Undo undo = 3;
+  }
+
+  message Insertion {
+    OperationId op_id = 1;
+    string text = 2;
+    OperationId left_dependency_id = 3;
+    Point offset_in_left_dependency = 4;
+    OperationId right_dependency_id = 5;
+    Point offset_in_right_dependency = 6;
+  }
+
+  message Deletion {
+    OperationId op_id = 1;
+    repeated OffsetRange offset_ranges = 2;
+
+    message OffsetRange {
+      OperationId op_id = 1;
+      Point start_offset = 2;
+      Point end_offset = 3;
+    }
+  }
+
+  message Undo {
+    OperationId op_id = 1;
+    uint32 undo_count = 2;
+  }
+}
+
+message OperationId {
+  uint32 site = 1;
+  uint32 seq = 2;
+}
+
+message Point {
+  uint32 row = 1;
+  uint32 column = 2;
+}

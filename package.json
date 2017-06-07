@@ -4,7 +4,8 @@
   "description": "",
   "main": "./lib/document-replica",
   "scripts": {
-    "test": "node script/test"
+    "test": "node script/test",
+    "compile-protobuf": "protoc --js_out=import_style=commonjs,binary:lib operation.proto"
   },
   "repository": {
     "type": "git",
@@ -19,5 +20,8 @@
     "mocha": "^3.4.1",
     "random-seed": "^0.3.0",
     "yargs": "^8.0.1"
+  },
+  "dependencies": {
+    "google-protobuf": "^3.3.0"
   }
 }
