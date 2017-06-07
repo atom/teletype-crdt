@@ -1,5 +1,6 @@
 const {getRandomDocumentPositionAndExtent, buildRandomLines} = require('./random')
 const {ZERO_POINT, compare} = require('../../lib/point-helpers')
+const {serializeOperation, deserializeOperation} = require('../../lib/serialization')
 const Document = require('./document')
 const DocumentReplica = require('../../lib/document-replica')
 
@@ -34,10 +35,11 @@ class Peer {
   }
 
   send (operation) {
-    this.outboxes.forEach((outbox) => outbox.push(operation))
+    this.outboxes.forEach((outbox) => outbox.push(serializeOperation(operation)))
   }
 
   receive (operation) {
+    operation = deserializeOperation(operation)
     this.log('Received', operation)
     const opsToApply = this.documentReplica.applyRemote(operation)
     this.log('Applying', opsToApply)
