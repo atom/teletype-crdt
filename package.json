@@ -1,5 +1,5 @@
 {
-  "name": "tachyon",
+  "name": "@atom-team/tachyon",
   "version": "0.1.0",
   "description": "",
   "main": "./lib/document-replica",
