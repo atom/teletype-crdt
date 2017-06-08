@@ -35,7 +35,8 @@ class Peer {
   }
 
   send (operation) {
-    this.outboxes.forEach((outbox) => outbox.push(serializeOperation(operation)))
+    operation = serializeOperation(operation)
+    this.outboxes.forEach((outbox) => outbox.push(operation))
   }
 
   receive (operation) {
