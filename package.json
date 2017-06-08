@@ -2,7 +2,7 @@
   "name": "@atom-team/tachyon",
   "version": "0.1.0",
   "description": "",
-  "main": "./lib/document-replica",
+  "main": "index.js",
   "scripts": {
     "test": "node script/test",
     "compile-protobuf": "protoc --js_out=import_style=commonjs,binary:lib operation.proto"
