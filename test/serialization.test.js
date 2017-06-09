@@ -1,5 +1,8 @@
 const assert = require('assert')
-const {serializeOperation, deserializeOperation} = require('../lib/serialization')
+const {
+  serializeOperation, deserializeOperation,
+  serializeRemotePosition, deserializeRemotePosition
+} = require('../lib/serialization')
 
 suite('serialization/deserialization', () => {
   test('inserts', () => {
@@ -41,5 +44,16 @@ suite('serialization/deserialization', () => {
     }
 
     assert.deepEqual(deserializeOperation(serializeOperation(op)), op)
+  })
+
+  test('remote position', () => {
+    const position = {
+      siteId: 1,
+      leftDependencyId: {site: 1, seq: 1},
+      offsetInLeftDependency: {row: 0, column: 5},
+      rightDependencyId: {site: 1, seq: 1},
+      offsetInRightDependency: {row: 0, column: 5},
+    }
+    assert.deepEqual(deserializeRemotePosition(serializeRemotePosition(position)), position)
   })
 })

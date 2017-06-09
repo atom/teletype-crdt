@@ -31,6 +31,14 @@ message Operation {
   }
 }
 
+message RemotePosition {
+  uint32 site_id = 1;
+  OperationId left_dependency_id = 2;
+  Point offset_in_left_dependency = 3;
+  OperationId right_dependency_id = 4;
+  Point offset_in_right_dependency = 5;
+}
+
 message OperationId {
   uint32 site = 1;
   uint32 seq = 2;
