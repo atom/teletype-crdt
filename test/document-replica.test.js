@@ -205,30 +205,34 @@ suite('DocumentReplica', () => {
   })
 
   test('local and remote position translation', () => {
-    const replica1Document = new Document('')
     const replica1 = new DocumentReplica(1)
-    const replica2Document = new Document('')
     const replica2 = new DocumentReplica(2)
 
-    const op0 = {type: 'insert', position: {row: 0, column: 0}, text: 'ABCDEFG'}
-    const op0ToSend = replica1.applyLocal(op0)
-    replica1Document.apply(op0)
-    replica2Document.applyMany(replica2.applyRemote(op0ToSend))
+    const op0ToSend = replica1.applyLocal({type: 'insert', position: {row: 0, column: 0}, text: 'ABCDEFG'})
+    replica2.applyRemote(op0ToSend)
 
-    const op1 = {type: 'insert', position: {row: 0, column: 6}, text: '+++'}
-    const op1ToSend = replica1.applyLocal(op1)
-    replica1Document.apply(op1)
-
-    const op2 = {type: 'insert', position: {row: 0, column: 2}, text: '**'}
-    const op2ToSend = replica2.applyLocal(op2)
-    replica2Document.apply(op2)
-    replica2Document.applyMany(replica2.applyRemote(op1ToSend))
-    assert.equal(replica2Document.text, 'AB**CDEF+++G')
+    const op1ToSend = replica1.applyLocal({type: 'insert', position: {row: 0, column: 6}, text: '+++'})
+    const op2ToSend = replica2.applyLocal({type: 'insert', position: {row: 0, column: 2}, text: '**'})
+    replica2.applyRemote(op1ToSend)
 
     assert.deepEqual(
       replica2.getLocalPositionSync(replica1.getRemotePosition({row: 0, column: 9})),
       {row: 0, column: 11}
     )
+  })
+
+  test('deferring remote position translation', (done) => {
+    const replica1 = new DocumentReplica(1)
+    const replica2 = new DocumentReplica(2)
+
+    const op1ToSend = replica1.applyLocal({type: 'insert', position: {row: 0, column: 0}, text: 'ABCDEFG'})
+    const remotePosition = replica1.getRemotePosition({row: 0, column: 4})
+
+    replica2.getLocalPosition(remotePosition).then((localPosition) => {
+      assert.deepEqual(localPosition, {row: 0, column: 4})
+      done()
+    })
+    replica2.applyRemote(op1ToSend)
   })
 
   test('replica convergence with random operations', function () {
