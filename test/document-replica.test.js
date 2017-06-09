@@ -204,6 +204,33 @@ suite('DocumentReplica', () => {
     assert.equal(replica.getText(), 'A***G')
   })
 
+  test('local and remote position translation', () => {
+    const replica1Document = new Document('')
+    const replica1 = new DocumentReplica(1)
+    const replica2Document = new Document('')
+    const replica2 = new DocumentReplica(2)
+
+    const op0 = {type: 'insert', position: {row: 0, column: 0}, text: 'ABCDEFG'}
+    const op0ToSend = replica1.applyLocal(op0)
+    replica1Document.apply(op0)
+    replica2Document.applyMany(replica2.applyRemote(op0ToSend))
+
+    const op1 = {type: 'insert', position: {row: 0, column: 6}, text: '+++'}
+    const op1ToSend = replica1.applyLocal(op1)
+    replica1Document.apply(op1)
+
+    const op2 = {type: 'insert', position: {row: 0, column: 2}, text: '**'}
+    const op2ToSend = replica2.applyLocal(op2)
+    replica2Document.apply(op2)
+    replica2Document.applyMany(replica2.applyRemote(op1ToSend))
+    assert.equal(replica2Document.text, 'AB**CDEF+++G')
+
+    assert.deepEqual(
+      replica2.getLocalPositionSync(replica1.getRemotePosition({row: 0, column: 9})),
+      {row: 0, column: 11}
+    )
+  })
+
   test('replica convergence with random operations', function () {
     this.timeout(Infinity)
     const initialSeed = Date.now()
@@ -216,6 +243,7 @@ suite('DocumentReplica', () => {
       const failureMessage = `Random seed: ${seed}`
       try {
         const random = Random(seed)
+        const remotePositions = []
         let operationCount = 0
         while (operationCount < 10) {
           const k = random(10)
@@ -228,6 +256,10 @@ suite('DocumentReplica', () => {
               peer.performRandomEdit(random)
             }
 
+            if (random(10) < 3) {
+              remotePositions.push(peer.generateRandomRemotePosition(random))
+            }
+
             assert.equal(peer.documentReplica.getText(), peer.document.text)
 
             operationCount++
@@ -236,6 +268,33 @@ suite('DocumentReplica', () => {
             peer.deliverRandomOperation(random)
 
             assert.equal(peer.documentReplica.getText(), peer.document.text)
+          }
+
+          for (let j = 0; j < peers.length; j++) {
+            const peer = peers[j]
+            for (var l = 0; l < remotePositions.length; l++) {
+              const remotePosition = remotePositions[l]
+              const canTranslatePosition = (
+                peer.documentReplica.hasAppliedOperation(remotePosition.leftDependencyId) &&
+                peer.documentReplica.hasAppliedOperation(remotePosition.rightDependencyId)
+              )
+              if (canTranslatePosition) {
+                const replicaCopy = peer.copyReplica(remotePosition.site)
+                assert.equal(replicaCopy.getText(), peer.document.text)
+                const opId = {
+                  site: replicaCopy.siteId,
+                  seq: (replicaCopy.maxSeqsBySite[remotePosition.site] || 0) + 1
+                }
+                const [insertionAtRemotePosition] = replicaCopy.insertRemote(
+                  Object.assign({opId, text: 'X'}, remotePosition)
+                )
+                assert.deepEqual(
+                  peer.documentReplica.getLocalPositionSync(remotePosition),
+                  insertionAtRemotePosition.position,
+                  'Site: ' + peer.siteId + '\n' + failureMessage
+                )
+              }
+            }
           }
         }
 

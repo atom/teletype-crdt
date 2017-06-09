@@ -28,6 +28,7 @@ class Peer {
     this.documentReplica = new DocumentReplica(siteId)
     this.deferredOperations = []
     this.history = []
+    this.operations = [] // includes undo
   }
 
   connect (peer) {
@@ -45,8 +46,9 @@ class Peer {
     const opsToApply = this.documentReplica.applyRemote(operation)
     this.log('Applying', opsToApply)
     this.document.applyMany(opsToApply)
-    this.log('Text', this.document.text)
+    this.log('Text', JSON.stringify(this.document.text))
     this.history.push(operation)
+    this.operations.push(operation)
   }
 
   isOutboxEmpty () {
@@ -66,8 +68,9 @@ class Peer {
     this.log('Generating', operation)
     const operationToSend = this.documentReplica.applyLocal(operation)
     this.send(operationToSend)
-    this.log('Text', this.document.text)
+    this.log('Text', JSON.stringify(this.document.text))
     this.history.push(operationToSend)
+    this.operations.push(operationToSend)
   }
 
   undoRandomOperation (random) {
@@ -77,7 +80,8 @@ class Peer {
       const {opsToApply, opToSend} = this.documentReplica.undoLocal(opToUndo.opId)
       this.log('Applying', opsToApply)
       this.document.applyMany(opsToApply)
-      this.log('Text', this.document.text)
+      this.log('Text', JSON.stringify(this.document.text))
+      this.operations.push(opToSend)
       this.send(opToSend)
     }
   }
@@ -86,6 +90,21 @@ class Peer {
     const outboxes = Array.from(this.outboxes).filter(([peer, operations]) => operations.length > 0)
     const [peer, operations] = outboxes[random(outboxes.length)]
     peer.receive(operations.shift())
+  }
+
+  generateRandomRemotePosition (random) {
+    const {position} = getRandomDocumentPositionAndExtent(random, this.document)
+    const remotePosition = this.documentReplica.getRemotePosition(position)
+    this.log('Generating random remote position', position, remotePosition)
+    return remotePosition
+  }
+
+  copyReplica (siteId) {
+    const replica = new DocumentReplica(siteId)
+    for (let i = 0; i < this.operations.length; i++) {
+      replica.applyRemote(this.operations[i])
+    }
+    return replica
   }
 
   log (...message) {
