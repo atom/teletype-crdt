@@ -201,7 +201,7 @@ suite('DocumentReplica', () => {
     document.apply(op2)
 
     document.applyMany(replica.undoLocal(op1Id).opsToApply)
-    assert.equal(replica.getText(), 'A***G')
+    assert.equal(document.text, 'A***G')
   })
 
   test('local and remote position translation', () => {
