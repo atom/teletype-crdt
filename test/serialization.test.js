@@ -1,7 +1,7 @@
 const assert = require('assert')
 const {
-  serializeOperation, deserializeOperation,
-  serializeRemotePosition, deserializeRemotePosition
+  serializeOperationBinary, deserializeOperationBinary,
+  serializeRemotePositionBinary, deserializeRemotePositionBinary
 } = require('../lib/serialization')
 
 suite('serialization/deserialization', () => {
@@ -16,7 +16,7 @@ suite('serialization/deserialization', () => {
       offsetInRightDependency: {row: 0, column: 5},
     }
 
-    assert.deepEqual(deserializeOperation(serializeOperation(op)), op)
+    assert.deepEqual(deserializeOperationBinary(serializeOperationBinary(op)), op)
   })
 
   test('deletes', () => {
@@ -33,7 +33,7 @@ suite('serialization/deserialization', () => {
       }
     }
 
-    assert.deepEqual(deserializeOperation(serializeOperation(op)), op)
+    assert.deepEqual(deserializeOperationBinary(serializeOperationBinary(op)), op)
   })
 
   test('undo', () => {
@@ -43,7 +43,7 @@ suite('serialization/deserialization', () => {
       undoCount: 3
     }
 
-    assert.deepEqual(deserializeOperation(serializeOperation(op)), op)
+    assert.deepEqual(deserializeOperationBinary(serializeOperationBinary(op)), op)
   })
 
   test('remote position', () => {
@@ -54,6 +54,6 @@ suite('serialization/deserialization', () => {
       rightDependencyId: {site: 1, seq: 1},
       offsetInRightDependency: {row: 0, column: 5},
     }
-    assert.deepEqual(deserializeRemotePosition(serializeRemotePosition(position)), position)
+    assert.deepEqual(deserializeRemotePositionBinary(serializeRemotePositionBinary(position)), position)
   })
 })
