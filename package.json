@@ -22,7 +22,6 @@
     "yargs": "^8.0.1"
   },
   "dependencies": {
-    "big-rational": "^0.10.6",
     "google-protobuf": "^3.3.0"
   }
 }
