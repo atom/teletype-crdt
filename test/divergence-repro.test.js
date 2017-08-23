@@ -8,7 +8,7 @@ const fs = require('fs')
 const path = require('path')
 
 suite('DocumentReplica', () => {
-  test.only('divergence', () => {
+  test('divergence 1', () => {
     const hostOps = JSON.parse(fs.readFileSync(path.join(__dirname, 'host-ops.json'), 'utf8'))
     const guestOps = JSON.parse(fs.readFileSync(path.join(__dirname, 'guest-ops.json'), 'utf8'))
     const hostReplicaText = fs.readFileSync(path.join(__dirname, 'replica-text-host.txt'), 'utf8')
@@ -29,5 +29,18 @@ suite('DocumentReplica', () => {
     assert.equal(host.getText(), guest.getText())
     // assert.equal(guest.getText(), hostReplicaText)
     assert.equal(guestReplicaText, guest.getText())
+  })
+
+  test.only('divergence 2', () => {
+    const host = new DocumentReplica(1)
+    const guest = new DocumentReplica(2)
+
+    const hostOps = JSON.parse(fs.readFileSync(path.join(__dirname, 'host.json'), 'utf8'))
+    const guestInfo = JSON.parse(fs.readFileSync(path.join(__dirname, 'guest.json'), 'utf8'))
+
+    for (const op of hostOps) {
+      console.log('apply', op);
+      host.applyRemote(op)
+    }
   })
 })
