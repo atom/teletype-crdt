@@ -1,0 +1,266 @@
+const assert = require('assert')
+const {CompositeDisposable, Emitter} = require('event-kit')
+const {NetworkMember, NetworkMessage} = require('./real-time_pb')
+const convertToProtobufCompatibleBuffer = require('./convert-to-protobuf-compatible-buffer')
+
+module.exports =
+class StarOverlayNetwork {
+  constructor ({id, peerPool, isHub}) {
+    this.id = id
+    this.peerPool = peerPool
+    this.isHub = isHub
+    if (this.isHub) this.spokes = new Set()
+    this.members = new Map() // TODO Rename `members` to something like "users by peer id"
+membersB
+PeerId      peerPool.onDisconnection(this.didLoseConnectionToPeer.bind(this)),
+      peerPool.onReceive(this.receive.bind(this))
+    )
+  }
+
+  dispose () {
+    this.subscriptions.dispose()
+    this.disconnect()
+  }
+
+  connectTo (hubId) {
+    assert(!this.isHub, 'The hub should only receive connections')
+    assert(!this.hubId, 'Can connect to hub only once')
+    return new Promise(async (resolve) => {
+      this.resolveConnectionPromise = resolve
+
+      this.hubId = hubId
+      await this.peerPool.connectTo(this.hubId)
+
+      const starConnection = new NetworkMessage.StarConnection()
+      starConnection.setSenderId(this.getPeerId())
+      const networkMessage = new NetworkMessage()
+      networkMessage.setStarConnection(starConnection)
+      networkMessage.setNetworkId(this.id)
+
+      this.peerPool.send(this.hubId, networkMessage.serializeBinary())
+    })
+  }
+
+  disconnect () {
+    if (!this.connected) return
+
+    const starDisconnection = new NetworkMessage.StarDisconnection()
+    starDisconnection.setSenderId(this.getPeerId())
+    starDisconnection.setConnectionLost(false)
+    const networkMessage = new NetworkMessage()
+    networkMessage.setStarDisconnection(starDisconnection)
+    networkMessage.setNetworkId(this.id)
+
+    if (this.isHub) {
+      this.forwardBroadcast(this.getPeerId(), networkMessage.serializeBinary())
+      this.spokes.clear()
+    } else {
+      this.peerPool.send(this.hubId, networkMessage.serializeBinary())
+      this.hubId = null
+    }
+
+    this.members.set(this.getPeerId(), this.peerPool.getUser(this.getPeerId()))
+    this.connected = false
+  }
+
+  unicast (recipientId, message) {
+    message = convertToProtobufCompatibleBuffer(message)
+
+    const starUnicast = new NetworkMessage.StarUnicast()
+    starUnicast.setSenderId(this.peerPool.peerId)
+    starUnicast.setRecipientId(recipientId)
+    starUnicast.setBody(message)
+    const networkMessage = new NetworkMessage()
+    networkMessage.setStarUnicast(starUnicast)
+    networkMessage.setNetworkId(this.id)
+    const rawNetworkMessage = networkMessage.serializeBinary()
+
+    if (this.isHub) {
+      this.forwardUnicast(recipientId, rawNetworkMessage)
+    } else {
+      this.peerPool.send(this.hubId, rawNetworkMessage)
+    }
+  }
+
+  broadcast (message) {
+    message = convertToProtobufCompatibleBuffer(message)
+
+    const starBroadcast = new NetworkMessage.StarBroadcast()
+    starBroadcast.setSenderId(this.peerPool.peerId)
+    starBroadcast.setBody(message)
+    const networkMessage = new NetworkMessage()
+    networkMessage.setStarBroadcast(starBroadcast)
+    networkMessage.setNetworkId(this.id)
+    const rawNetworkMessage = networkMessage.serializeBinary()
+
+    if (this.isHub) {
+      this.forwardBroadcast(this.peerPool.peerId, rawNetworkMessage)
+    } else {
+      this.peerPool.send(this.hubId, rawNetworkMessage)
+    }
+  }
+
+  onPeerJoin (callback) {
+    return this.emitter.on('join', callback)
+  }
+
+  onPeerLeave (callback) {
+    return this.emitter.on('leave', callback)
+  }
+
+  onReceive (callback) {
+    return this.emitter.on('receive', callback)
+  }
+
+  getMembers () {
+    const members = new Set()
+    this.members.forEach((user, peerId) => {
+      members.add({peerId, username: user.username})
+    })
+    return members
+  }
+
+  getPeerId () {
+    return this.peerPool.peerId
+  }
+
+  receive ({senderId, message}) {
+    const networkMessage = NetworkMessage.deserializeBinary(message)
+    if (networkMessage.getNetworkId() !== this.id) return
+
+    if (networkMessage.hasStarConnection()) {
+      this.receiveConnection(message, networkMessage.getStarConnection())
+    } else if (networkMessage.hasStarConnectionAck()) {
+      this.receiveConnectionAck(networkMessage.getStarConnectionAck())
+    } else if (networkMessage.hasStarDisconnection()) {
+      this.receiveDisconnection(message, networkMessage.getStarDisconnection())
+    } else if (networkMessage.hasStarUnicast()) {
+      this.receiveUnicast(message, networkMessage.getStarUnicast())
+    } else if (networkMessage.hasStarBroadcast()) {
+      this.receiveBroadcast(message, networkMessage.getStarBroadcast())
+    }
+  }
+
+  receiveConnection (rawMessage, connectionMessage) {
+    const senderId = connectionMessage.getSenderId()
+
+    if (this.isHub) {
+      this.connected = true
+      this.spokes.add(senderId)
+
+      const networkMembers = []
+      this.getMembers().forEach((member) => {
+        const networkMember = new NetworkMember()
+        networkMember.setId(member.peerId)
+Peer        networkMember.setUsername(member.username)
+        networkMembers.push(networkMember)
+      })
+
+      const connectionAck = new NetworkMessage.StarConnectionAck()
+      connectionAck.setMembersList(networkMembers)
+      const ackNetworkMessage = new NetworkMessage()
+      ackNetworkMessage.setNetworkId(this.id)
+      ackNetworkMessage.setStarConnectionAck(connectionAck)
+      this.peerPool.send(senderId, ackNetworkMessage.serializeBinary())
+
+
+NetworkMessage.      const starJoinNotification = new NetworkMessage.StarJoinNotification()
+      const networkMcation.setNetworkMember(networkMember)ber = new NetworkMember()
+      networkMember.setPeerId(senderId)
+      starJoinNotifica
+            this.forwardBroadcast(senderId, rawMessage)
+    }
+
+console.log('receiveConnection', this.getPeerId(), senderId, this.peerPool.getUser(senderId))
+    connectionMessage.getMember
+    this.emitter.emit('join', {peerId: senderId})
+  }
+
+
+    assert(!this.isHub, 'Connection acknowledgments cannot be sent to the hub')
+    const networkMembers = connectionAckMessage.getMembersList()
+    for (let i = 0; i < networkMembers.length; i++) {
+      const networkMember = networkMembers[i]
+      console.log(this.getPeerId(), 'receiveConnectionAck loop', networkMember.getId(), networkMember.getUsername());
+    }
+PeerPeer
+    this.resolveConnectionPromise()
+    this.resolveConnectionPromise = null
+    this.connected = true
+  }
+
+  didLoseConnectionToPeer ({peerId}) {
+    if (this.isHub) {
+      this.spokes.delete(peerId)
+
+      const starDisconnection = new NetworkMessage.StarDisconnection()
+      starDisconnection.setSenderId(peerId)
+      starDisconnection.setConnectionLost(true)
+      const networkMessage = new NetworkMessage()
+      networkMessage.setStarDisconnection(starDisconnection)
+      networkMessage.setNetworkId(this.id)
+      this.forwardBroadcast(peerId, networkMessage.serializeBinary())
+    }
+
+    this.handleDisconnection(peerId, true)
+  }
+
+  receiveDisconnection (rawMessage, disconnectionMessage) {
+    const peerId = disconnectionMessage.getSenderId()
+    if (this.isHub) {
+      this.spokes.delete(peerId)
+      this.forwardBroadcast(peerId, rawMessage)
+    }
+
+    this.handleDisconnection(peerId, disconnectionMessage.getConnectionLost())
+  }
+
+  receiveUnicast (rawMessage, unicastMessage) {
+    const recipientId = unicastMessage.getRecipientId()
+    if (recipientId === this.peerPool.peerId) {
+      this.emitter.emit('receive', {
+        senderId: unicastMessage.getSenderId(),
+        message: convertToProtobufCompatibleBuffer(unicastMessage.getBody())
+      })
+    } else if (this.isHub) {
+      this.forwardUnicast(recipientId, rawMessage)
+    } else {
+      throw new Error('Received a unicast not intended for this peer')
+    }
+  }
+
+  receiveBroadcast (rawMessage, broadcastMessage) {
+    const senderId = broadcastMessage.getSenderId()
+    if (this.isHub) this.forwardBroadcast(senderId, rawMessage)
+    this.emitter.emit('receive', {
+      senderId,
+      message: convertToProtobufCompatibleBuffer(broadcastMessage.getBody())
+    })
+  }
+
+  forwardUnicast (recipientId, rawMessage) {
+    if (this.spokes.has(recipientId)) {
+      this.peerPool.send(recipientId, rawMessage)
+    }
+  }
+
+  forwardBroadcast (senderId, rawMessage) {
+    this.spokes.forEach((peerId) => {
+      if (peerId !== senderId) {
+        this.peerPool.send(peerId, rawMessage)
+      }
+    })
+  }
+
+  handleDisconnection (peerId, connectionLost) {
+    if (peerId === this.hubId) {
+      this.hubId = null
+      this.connected = false
+      this.members.set(this.getPeerId(), this.peerPool.getUser(this.getPeerId()))
+    } else {
+      this.members.delete(peerId)
+    }
+
+    this.emitter.emit('leave', {peerId, connectionLost})
+  }
+}
