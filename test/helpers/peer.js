@@ -62,7 +62,8 @@ class Peer {
       const text = this.document.getTextInRange(position, traverse(position, extent))
       operation = {type: 'delete', position, extent, text}
     } else {
-      operation = {type: 'insert', position, text: buildRandomLines(random, 3)}
+      const text = buildRandomLines(random, 3)
+      operation = {type: 'insert', position, extent: extentForText(text), text}
     }
 
     this.document.apply(operation)

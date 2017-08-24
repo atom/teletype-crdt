@@ -24,6 +24,7 @@ class Document {
       assert.equal(operation.text, textToDelete)
       this.delete(operation.position, operation.extent)
     } else if (operation.type === 'insert') {
+      assert.deepEqual(operation.extent, extentForText(operation.text))
       this.insert(operation.position, operation.text)
     } else {
       throw new Error('Unknown operation type')

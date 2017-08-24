@@ -11,11 +11,11 @@ suite('DocumentReplica', () => {
     const replica2Document = new Document('')
     const replica2 = new DocumentReplica(2)
 
-    const op1 = {type: 'insert', position: {row: 0, column: 0}, text: 'a'}
+    const op1 = {type: 'insert', position: {row: 0, column: 0}, extent: {row: 0, column: 1}, text: 'a'}
     const op1ToSend = replica1.applyLocal(op1)
     replica1Document.apply(op1)
 
-    const op2 = {type: 'insert', position: {row: 0, column: 0}, text: 'b'}
+    const op2 = {type: 'insert', position: {row: 0, column: 0}, extent: {row: 0, column: 1}, text: 'b'}
     const op2ToSend = replica2.applyLocal(op2)
     replica2Document.apply(op2)
 
@@ -31,18 +31,18 @@ suite('DocumentReplica', () => {
     const replica2Document = new Document('')
     const replica2 = new DocumentReplica(2)
 
-    const op0 = {type: 'insert', position: {row: 0, column: 0}, text: 'ABCDEFG'}
+    const op0 = {type: 'insert', position: {row: 0, column: 0}, extent: {row: 0, column: 7}, text: 'ABCDEFG'}
     const op0ToSend = replica1.applyLocal(op0)
     replica1Document.apply(op0)
     replica2Document.applyMany(replica2.applyRemote(op0ToSend))
     assert.equal(replica1Document.text, 'ABCDEFG')
     assert.equal(replica2Document.text, 'ABCDEFG')
 
-    const op1 = {type: 'insert', position: {row: 0, column: 2}, text: '+++'}
+    const op1 = {type: 'insert', position: {row: 0, column: 2}, extent: {row: 0, column: 3}, text: '+++'}
     const op1ToSend = replica1.applyLocal(op1)
     replica1Document.apply(op1)
 
-    const op2 = {type: 'insert', position: {row: 0, column: 2}, text: '***'}
+    const op2 = {type: 'insert', position: {row: 0, column: 2}, extent: {row: 0, column: 3}, text: '***'}
     const op2ToSend = replica2.applyLocal(op2)
     replica2Document.apply(op2)
 
@@ -58,18 +58,18 @@ suite('DocumentReplica', () => {
     const replica2Document = new Document('')
     const replica2 = new DocumentReplica(2)
 
-    const op0 = {type: 'insert', position: {row: 0, column: 0}, text: 'ABCDEFG'}
+    const op0 = {type: 'insert', position: {row: 0, column: 0}, extent: {row: 0, column: 7}, text: 'ABCDEFG'}
     const op0ToSend = replica1.applyLocal(op0)
     replica1Document.apply(op0)
     replica2Document.applyMany(replica2.applyRemote(op0ToSend))
     assert.equal(replica1Document.text, 'ABCDEFG')
     assert.equal(replica2Document.text, 'ABCDEFG')
 
-    const op1 = {type: 'insert', position: {row: 0, column: 6}, text: '+++'}
+    const op1 = {type: 'insert', position: {row: 0, column: 6}, extent: {row: 0, column: 3}, text: '+++'}
     const op1ToSend = replica1.applyLocal(op1)
     replica1Document.apply(op1)
 
-    const op2 = {type: 'insert', position: {row: 0, column: 2}, text: '***'}
+    const op2 = {type: 'insert', position: {row: 0, column: 2}, extent: {row: 0, column: 3}, text: '***'}
     const op2ToSend = replica2.applyLocal(op2)
     replica2Document.apply(op2)
 
@@ -85,7 +85,7 @@ suite('DocumentReplica', () => {
     const replica2Document = new Document('')
     const replica2 = new DocumentReplica(2)
 
-    const op0 = {type: 'insert', position: {row: 0, column: 0}, text: 'ABCDEFG'}
+    const op0 = {type: 'insert', position: {row: 0, column: 0}, extent: {row: 0, column: 7}, text: 'ABCDEFG'}
     const op0ToSend = replica1.applyLocal(op0)
     replica1Document.apply(op0)
     replica2Document.applyMany(replica2.applyRemote(op0ToSend))
@@ -113,12 +113,12 @@ suite('DocumentReplica', () => {
     const replica2Document = new Document('')
     const replica2 = new DocumentReplica(2)
 
-    const op0 = {type: 'insert', position: {row: 0, column: 0}, text: 'ABCDEFG'}
+    const op0 = {type: 'insert', position: {row: 0, column: 0}, extent: {row: 0, column: 7}, text: 'ABCDEFG'}
     const op0ToSend = replica1.applyLocal(op0)
     replica1Document.apply(op0)
     replica2Document.applyMany(replica2.applyRemote(op0ToSend))
 
-    const op1 = {type: 'insert', position: {row: 0, column: 3}, text: '***'}
+    const op1 = {type: 'insert', position: {row: 0, column: 3}, extent: {row: 0, column: 3}, text: '***'}
     const op1ToSend = replica1.applyLocal(op1)
     replica1Document.apply(op1)
     replica2Document.applyMany(replica2.applyRemote(op1ToSend))
@@ -136,7 +136,7 @@ suite('DocumentReplica', () => {
     const replica2Document = new Document('')
     const replica2 = new DocumentReplica(2)
 
-    const op0 = {type: 'insert', position: {row: 0, column: 0}, text: 'ABCDEFG'}
+    const op0 = {type: 'insert', position: {row: 0, column: 0}, extent: {row: 0, column: 7}, text: 'ABCDEFG'}
     const op0ToSend = replica1.applyLocal(op0)
     replica1Document.apply(op0)
     replica2Document.applyMany(replica2.applyRemote(op0ToSend))
@@ -160,7 +160,7 @@ suite('DocumentReplica', () => {
     const replica2Document = new Document('')
     const replica2 = new DocumentReplica(2)
 
-    const op0 = {type: 'insert', position: {row: 0, column: 0}, text: 'ABCDEFG'}
+    const op0 = {type: 'insert', position: {row: 0, column: 0}, extent: {row: 0, column: 7}, text: 'ABCDEFG'}
     const op0ToSend = replica1.applyLocal(op0)
     replica1Document.apply(op0)
     replica2Document.applyMany(replica2.applyRemote(op0ToSend))
@@ -187,7 +187,7 @@ suite('DocumentReplica', () => {
     const document = new Document('')
     const replica = new DocumentReplica(1)
 
-    const op0 = {type: 'insert', position: {row: 0, column: 0}, text: 'ABCDEFG'}
+    const op0 = {type: 'insert', position: {row: 0, column: 0}, extent: {row: 0, column: 7}, text: 'ABCDEFG'}
     replica.applyLocal(op0)
     document.apply(op0)
 
@@ -196,7 +196,7 @@ suite('DocumentReplica', () => {
     document.apply(op1)
     document.applyMany(replica.undoLocal(op1Id).opsToApply)
 
-    const op2 = {type: 'insert', position: {row: 0, column: 3}, text: '***'}
+    const op2 = {type: 'insert', position: {row: 0, column: 3}, extent: {row: 0, column: 3}, text: '***'}
     replica.applyLocal(op2)
     document.apply(op2)
 
@@ -209,12 +209,12 @@ suite('DocumentReplica', () => {
     const localReplica = new DocumentReplica(1)
     const remoteReplica = new DocumentReplica(1)
 
-    const op1ToSend = remoteReplica.applyLocal({type: 'insert', position: {row: 0, column: 0}, text: 'ABCDEFG'})
-    const op2ToSend = remoteReplica.applyLocal({type: 'insert', position: {row: 0, column: 3}, text: '+++'})
-    localReplicaDocument.applyMany(localReplica.applyRemote(op1ToSend))
-    localReplicaDocument.applyMany(localReplica.applyRemote(op2ToSend))
+    const op1 = {type: 'insert', position: {row: 0, column: 0}, extent: {row: 0, column: 7}, text: 'ABCDEFG'}
+    const op2 = {type: 'insert', position: {row: 0, column: 3}, extent: {row: 0, column: 3}, text: '+++'}
+    localReplicaDocument.applyMany(localReplica.applyRemote(remoteReplica.applyLocal(op1)))
+    localReplicaDocument.applyMany(localReplica.applyRemote(remoteReplica.applyLocal(op2)))
 
-    const op3 = {type: 'insert', position: {row: 0, column: 1}, text: '***'}
+    const op3 = {type: 'insert', position: {row: 0, column: 1}, extent: {row: 0, column: 3}, text: '***'}
     localReplica.applyLocal(op3)
     localReplicaDocument.apply(op3)
 
