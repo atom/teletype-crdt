@@ -43,7 +43,7 @@ class Peer {
   receive (operation) {
     operation = deserializeOperation(operation)
     this.log('Received', operation)
-    const opsToApply = this.documentReplica.applyRemote(operation)
+    const opsToApply = this.documentReplica.applyRemoteOperation(operation)
     this.log('Applying', opsToApply)
     this.document.applyMany(opsToApply)
     this.log('Text', JSON.stringify(this.document.text))
@@ -58,28 +58,29 @@ class Peer {
   performRandomEdit (random) {
     const {position, extent} = getRandomDocumentPositionAndExtent(random, this.document)
     let operation
+
     if (random(2) < 1 && compare(extent, ZERO_POINT) > 0) {
-      const text = this.document.getTextInRange(position, traverse(position, extent))
-      operation = {type: 'delete', position, extent, text}
+      this.log('Deleting', position, extent)
+      this.document.delete(position, extent)
+      operation = this.documentReplica.delete(position, extent)
     } else {
       const text = buildRandomLines(random, 3)
-      operation = {type: 'insert', position, extent: extentForText(text), text}
+      this.log('Inserting', position, text)
+      this.document.insert(position, text)
+      operation = this.documentReplica.insert(position, text)
     }
-
-    this.document.apply(operation)
-    this.log('Generating', operation)
-    const operationToSend = this.documentReplica.applyLocal(operation)
-    this.send(operationToSend)
     this.log('Text', JSON.stringify(this.document.text))
-    this.history.push(operationToSend)
-    this.operations.push(operationToSend)
+
+    this.send(operation)
+    this.history.push(operation)
+    this.operations.push(operation)
   }
 
   undoRandomOperation (random) {
     const opToUndo = this.history[random(this.history.length)]
     if (this.documentReplica.hasAppliedOperation(opToUndo.opId)) {
       this.log('Undoing', opToUndo)
-      const {opsToApply, opToSend} = this.documentReplica.undoLocal(opToUndo.opId)
+      const {opsToApply, opToSend} = this.documentReplica.undoOrRedoOperation(opToUndo.opId)
       this.log('Applying', opsToApply)
       this.document.applyMany(opsToApply)
       this.log('Text', JSON.stringify(this.document.text))
@@ -104,7 +105,7 @@ class Peer {
   copyReplica (siteId) {
     const replica = new DocumentReplica(siteId)
     for (let i = 0; i < this.operations.length; i++) {
-      replica.applyRemote(this.operations[i])
+      replica.applyRemoteOperation(this.operations[i])
     }
     return replica
   }
