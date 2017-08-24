@@ -17,6 +17,11 @@ class Document {
 
   apply (operation) {
     if (operation.type === 'delete') {
+      const textToDelete = this.getTextInRange(
+        operation.position,
+        traverse(operation.position, operation.extent)
+      )
+      assert.equal(operation.text, textToDelete)
       this.delete(operation.position, operation.extent)
     } else if (operation.type === 'insert') {
       this.insert(operation.position, operation.text)
@@ -48,5 +53,11 @@ class Document {
 
   getLineCount () {
     return extentForText(this.text).row + 1
+  }
+
+  getTextInRange (start, end) {
+    const startIndex = characterIndexForPosition(this.text, start)
+    const endIndex = characterIndexForPosition(this.text, end)
+    return this.text.slice(startIndex, endIndex)
   }
 }

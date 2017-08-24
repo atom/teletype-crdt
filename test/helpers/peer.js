@@ -1,5 +1,5 @@
 const {getRandomDocumentPositionAndExtent, buildRandomLines} = require('./random')
-const {ZERO_POINT, compare} = require('../../lib/point-helpers')
+const {ZERO_POINT, compare, traverse, extentForText} = require('../../lib/point-helpers')
 const {serializeOperation, deserializeOperation} = require('../../lib/serialization')
 const Document = require('./document')
 const DocumentReplica = require('../../lib/document-replica')
@@ -59,7 +59,8 @@ class Peer {
     const {position, extent} = getRandomDocumentPositionAndExtent(random, this.document)
     let operation
     if (random(2) < 1 && compare(extent, ZERO_POINT) > 0) {
-      operation = {type: 'delete', position, extent}
+      const text = this.document.getTextInRange(position, traverse(position, extent))
+      operation = {type: 'delete', position, extent, text}
     } else {
       operation = {type: 'insert', position, text: buildRandomLines(random, 3)}
     }

@@ -92,11 +92,11 @@ suite('DocumentReplica', () => {
     assert.equal(replica1Document.text, 'ABCDEFG')
     assert.equal(replica2Document.text, 'ABCDEFG')
 
-    const op1 = {type: 'delete', position: {row: 0, column: 2}, extent: {row: 0, column: 3}}
+    const op1 = {type: 'delete', position: {row: 0, column: 2}, extent: {row: 0, column: 3}, text: 'CDE'}
     replica1Document.apply(op1)
     const op1ToSend = replica1.applyLocal(op1)
 
-    const op2 = {type: 'delete', position: {row: 0, column: 4}, extent: {row: 0, column: 2}}
+    const op2 = {type: 'delete', position: {row: 0, column: 4}, extent: {row: 0, column: 2}, text: 'EF'}
     replica2Document.apply(op2)
     const op2ToSend = replica2.applyLocal(op2)
 
@@ -141,7 +141,7 @@ suite('DocumentReplica', () => {
     replica1Document.apply(op0)
     replica2Document.applyMany(replica2.applyRemote(op0ToSend))
 
-    const op1 = {type: 'delete', position: {row: 0, column: 3}, extent: {row: 0, column: 3}}
+    const op1 = {type: 'delete', position: {row: 0, column: 3}, extent: {row: 0, column: 3}, text: 'DEF'}
     const op1ToSend = replica1.applyLocal(op1)
     replica1Document.apply(op1)
     replica2Document.applyMany(replica2.applyRemote(op1ToSend))
@@ -165,11 +165,11 @@ suite('DocumentReplica', () => {
     replica1Document.apply(op0)
     replica2Document.applyMany(replica2.applyRemote(op0ToSend))
 
-    const op1 = {type: 'delete', position: {row: 0, column: 1}, extent: {row: 0, column: 3}}
+    const op1 = {type: 'delete', position: {row: 0, column: 1}, extent: {row: 0, column: 3}, text: 'BCD'}
     const op1ToSend = replica1.applyLocal(op1)
     replica1Document.apply(op1)
 
-    const op2 = {type: 'delete', position: {row: 0, column: 3}, extent: {row: 0, column: 3}}
+    const op2 = {type: 'delete', position: {row: 0, column: 3}, extent: {row: 0, column: 3}, text: 'DEF'}
     const op2ToSend = replica2.applyLocal(op2)
     replica2Document.apply(op2)
 
@@ -191,7 +191,7 @@ suite('DocumentReplica', () => {
     replica.applyLocal(op0)
     document.apply(op0)
 
-    const op1 = {type: 'delete', position: {row: 0, column: 1}, extent: {row: 0, column: 5}}
+    const op1 = {type: 'delete', position: {row: 0, column: 1}, extent: {row: 0, column: 5}, text: 'BCDEF'}
     const {opId: op1Id} = replica.applyLocal(op1)
     document.apply(op1)
     document.applyMany(replica.undoLocal(op1Id).opsToApply)
