@@ -136,6 +136,46 @@ suite('DocumentReplica', () => {
     })
   })
 
+  suite('history', () => {
+    test.only('basic undo and redo', () => {
+      const replicaA = new DocumentReplica(1)
+      const replicaB = new DocumentReplica(2)
+      replicaA.testDocument = new Document('')
+      replicaB.testDocument = new Document('')
+
+      applyRemote(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
+      applyRemote(replicaA, performInsert(replicaB, {row: 0, column: 3}, 'b1 '))
+      applyRemote(replicaB, performInsert(replicaA, {row: 0, column: 6}, 'a2 '))
+      applyRemote(replicaA, performInsert(replicaB, {row: 0, column: 9}, 'b2'))
+      assert.equal(replicaA.testDocument.text, 'a1 b1 a2 b2')
+      assert.equal(replicaB.testDocument.text, 'a1 b1 a2 b2')
+
+      {
+        applyRemote(replicaB, performUndo(replicaA))
+        assert.equal(replicaA.testDocument.text, 'a1 b1 b2')
+        assert.equal(replicaB.testDocument.text, 'a1 b1 b2')
+      }
+
+      {
+        applyRemote(replicaB, performUndo(replicaA))
+        assert.equal(replicaA.testDocument.text, 'b1 b2')
+        assert.equal(replicaB.testDocument.text, 'b1 b2')
+      }
+
+      {
+        applyRemote(replicaB, performRedo(replicaA))
+        assert.equal(replicaA.testDocument.text, 'a1 b1 b2')
+        assert.equal(replicaB.testDocument.text, 'a1 b1 b2')
+      }
+
+      {
+        applyRemote(replicaB, performRedo(replicaA))
+        assert.equal(replicaA.testDocument.text, 'a1 b1 a2 b2')
+        assert.equal(replicaB.testDocument.text, 'a1 b1 a2 b2')
+      }
+    })
+  })
+
   suite('positions', () => {
     test('local and remote position translation', () => {
       const replica1 = buildReplica(1)
