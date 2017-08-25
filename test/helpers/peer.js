@@ -45,7 +45,7 @@ class Peer {
   receive (operation) {
     operation = deserializeOperation(operation)
     this.log('Received', operation)
-    const opsToApply = this.documentReplica.applyRemoteOperation(operation)
+    const opsToApply = this.documentReplica.integrateOperation(operation)
     // this.log('Applying', opsToApply)
     this.document.applyMany(opsToApply)
     this.log('Text', JSON.stringify(this.document.text))
@@ -137,7 +137,7 @@ class Peer {
   copyReplica (siteId) {
     const replica = new DocumentReplica(siteId)
     for (let i = 0; i < this.allOperations.length; i++) {
-      replica.applyRemoteOperation(this.allOperations[i])
+      replica.integrateOperation(this.allOperations[i])
     }
     return replica
   }
