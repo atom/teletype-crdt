@@ -17,29 +17,27 @@ class Document {
     }
   }
 
-  apply (operation) {
-    if (operation.type === 'delete') {
-      const textToDelete = this.getTextInRange(
-        operation.position,
-        traverse(operation.position, operation.extent)
-      )
-      assert.equal(operation.text, textToDelete)
-      this.delete(operation.position, operation.extent)
-    } else if (operation.type === 'insert') {
-      assert.deepEqual(operation.extent, extentForText(operation.text))
-      this.insert(operation.position, operation.text)
+  apply ({type, position, extent, text}) {
+    if (type === 'delete') {
+      const end  = traverse(position, extent)
+      const textToDelete = this.getTextInRange(position, end)
+      assert.equal(text, textToDelete)
+      this.delete(position, end)
+    } else if (type === 'insert') {
+      assert.deepEqual(extent, extentForText(text))
+      this.insert(position, text)
     } else {
       throw new Error('Unknown operation type')
     }
   }
 
-  setTextInRange (position, extent, text) {
-    if (compare(extent, ZERO_POINT) > 0) {
-      this.delete(position, extent)
+  setTextInRange (start, end, text) {
+    if (compare(end, start) > 0) {
+      this.delete(start, end)
     }
 
     if (text && text.length > 0) {
-      this.insert(position, text)
+      this.insert(start, text)
     }
   }
 
@@ -48,8 +46,7 @@ class Document {
     this.text = this.text.slice(0, index) + text + this.text.slice(index)
   }
 
-  delete (startPosition, extent) {
-    const endPosition = traverse(startPosition, extent)
+  delete (startPosition, endPosition) {
     const textExtent = extentForText(this.text)
     assert(compare(startPosition, textExtent) < 0)
     assert(compare(endPosition, textExtent) <= 0)

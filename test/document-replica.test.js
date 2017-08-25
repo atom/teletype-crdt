@@ -53,8 +53,8 @@ suite('DocumentReplica', () => {
       const replica2 = buildReplica(2)
       applyRemoteOperation(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
 
-      const op1 = performDelete(replica1, {row: 0, column: 2}, {row: 0, column: 3})
-      const op2 = performDelete(replica2, {row: 0, column: 4}, {row: 0, column: 2})
+      const op1 = performDelete(replica1, {row: 0, column: 2}, {row: 0, column: 5})
+      const op2 = performDelete(replica2, {row: 0, column: 4}, {row: 0, column: 6})
       applyRemoteOperation(replica1, op2)
       applyRemoteOperation(replica2, op1)
 
@@ -86,7 +86,7 @@ suite('DocumentReplica', () => {
       const op1 = performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG')
       applyRemoteOperation(replica2, op1)
 
-      const op2 = performDelete(replica1, {row: 0, column: 3}, {row: 0, column: 3})
+      const op2 = performDelete(replica1, {row: 0, column: 3}, {row: 0, column: 6})
       applyRemoteOperation(replica2, op2)
 
       const op1Undo = performUndoOrRedoOperation(replica1, op1.opId)
@@ -101,8 +101,8 @@ suite('DocumentReplica', () => {
       const replica2 = buildReplica(2)
       applyRemoteOperation(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
 
-      const op1 = performDelete(replica1, {row: 0, column: 1}, {row: 0, column: 3})
-      const op2 = performDelete(replica2, {row: 0, column: 3}, {row: 0, column: 3})
+      const op1 = performDelete(replica1, {row: 0, column: 1}, {row: 0, column: 4})
+      const op2 = performDelete(replica2, {row: 0, column: 3}, {row: 0, column: 6})
       applyRemoteOperation(replica1, op2)
       applyRemoteOperation(replica2, op1)
       const op2Undo = performUndoOrRedoOperation(replica1, op2.opId)
@@ -116,7 +116,7 @@ suite('DocumentReplica', () => {
       const replica = buildReplica(1)
 
       performInsert(replica, {row: 0, column: 0}, 'ABCDEFG')
-      const deleteOp = performDelete(replica, {row: 0, column: 1}, {row: 0, column: 5})
+      const deleteOp = performDelete(replica, {row: 0, column: 1}, {row: 0, column: 6})
       performUndoOrRedoOperation(replica, deleteOp.opId)
       performInsert(replica, {row: 0, column: 3}, '***')
       performUndoOrRedoOperation(replica, deleteOp.opId) // Redo
@@ -145,7 +145,7 @@ suite('DocumentReplica', () => {
       applyRemoteOperation(replicaA, performInsert(replicaB, {row: 0, column: 3}, 'b1 '))
       applyRemoteOperation(replicaB, performInsert(replicaA, {row: 0, column: 6}, 'a2 '))
       applyRemoteOperation(replicaA, performInsert(replicaB, {row: 0, column: 9}, 'b2'))
-      applyRemoteOperations(replicaA, performSetTextInRange(replicaB, {row: 0, column: 3}, {row: 0, column: 2}, 'b3'))
+      applyRemoteOperations(replicaA, performSetTextInRange(replicaB, {row: 0, column: 3}, {row: 0, column: 5}, 'b3'))
       assert.equal(replicaA.testDocument.text, 'a1 b3 a2 b2')
       assert.equal(replicaB.testDocument.text, 'a1 b3 a2 b2')
 
@@ -186,8 +186,8 @@ suite('DocumentReplica', () => {
 
       applyRemoteOperation(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
       const checkpoint = replicaA.createCheckpoint()
-      applyRemoteOperations(replicaB, performSetTextInRange(replicaA, {row: 0, column: 1}, {row: 0, column: 2}, '2 a3 '))
-      applyRemoteOperation(replicaB, performDelete(replicaA, {row: 0, column: 5}, {row: 0, column: 1}))
+      applyRemoteOperations(replicaB, performSetTextInRange(replicaA, {row: 0, column: 1}, {row: 0, column: 3}, '2 a3 '))
+      applyRemoteOperation(replicaB, performDelete(replicaA, {row: 0, column: 5}, {row: 0, column: 6}))
       applyRemoteOperation(replicaA, performInsert(replicaB, {row: 0, column: 0}, 'b1 '))
       assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
       assert.equal(replicaB.testDocument.text, 'b1 a2 a3')
@@ -352,13 +352,13 @@ function performInsert (replica, position, text) {
   return performSetTextInRange(replica, position, ZERO_POINT, text)[0]
 }
 
-function performDelete (replica, position, extent) {
-  return performSetTextInRange(replica, position, extent, null)[0]
+function performDelete (replica, start, end) {
+  return performSetTextInRange(replica, start, end, null)[0]
 }
 
-function performSetTextInRange (replica, position, extent, text) {
-  replica.testDocument.setTextInRange(position, extent, text)
-  return replica.setTextInRange(position, extent, text)
+function performSetTextInRange (replica, start, end, text) {
+  replica.testDocument.setTextInRange(start, end, text)
+  return replica.setTextInRange(start, end, text)
 }
 
 function performUndo (replica) {

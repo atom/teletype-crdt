@@ -1,4 +1,4 @@
-const {getRandomDocumentPositionAndExtent, buildRandomLines} = require('./random')
+const {getRandomDocumentRange, buildRandomLines} = require('./random')
 const {ZERO_POINT, compare, traverse, extentForText} = require('../../lib/point-helpers')
 const {serializeOperation, deserializeOperation} = require('../../lib/serialization')
 const Document = require('./document')
@@ -58,12 +58,12 @@ class Peer {
   performRandomEdit (random) {
     let operations
     while (true) {
-      const {position, extent} = getRandomDocumentPositionAndExtent(random, this.document)
+      const {start, end} = getRandomDocumentRange(random, this.document)
       const text = buildRandomLines(random, 3)
-      if (compare(extent, ZERO_POINT) > 0 || text.length > 0) {
-        this.log('setTextInRange', position, extent, JSON.stringify(text))
-        this.document.setTextInRange(position, extent, text)
-        operations = this.documentReplica.setTextInRange(position, extent, text)
+      if (compare(end, ZERO_POINT) > 0 || text.length > 0) {
+        this.log('setTextInRange', start, end, JSON.stringify(text))
+        this.document.setTextInRange(start, end, text)
+        operations = this.documentReplica.setTextInRange(start, end, text)
         break
       }
     }
@@ -96,9 +96,9 @@ class Peer {
   }
 
   generateRandomRemotePosition (random) {
-    const {position} = getRandomDocumentPositionAndExtent(random, this.document)
-    const remotePosition = this.documentReplica.getRemotePosition(position)
-    this.log('Generating random remote position', position, remotePosition)
+    const {start} = getRandomDocumentRange(random, this.document)
+    const remotePosition = this.documentReplica.getRemotePosition(start)
+    this.log('Generating random remote position', start, remotePosition)
     return remotePosition
   }
 

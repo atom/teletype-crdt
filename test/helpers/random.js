@@ -1,7 +1,7 @@
 const WORDS = require('./words')
 const {compare, traversal} = require('../../lib/point-helpers')
 
-exports.getRandomDocumentPositionAndExtent = function getRandomDocumentPositionAndExtent (random, document) {
+exports.getRandomDocumentRange = function getRandomDocumentPositionAndExtent (random, document) {
   const endRow = random(document.getLineCount())
   const startRow = random.intBetween(0, endRow)
   const startColumn = random(document.lineForRow(startRow).length)
@@ -9,12 +9,11 @@ exports.getRandomDocumentPositionAndExtent = function getRandomDocumentPositionA
   let start = {row: startRow, column: startColumn}
   let end = {row: endRow, column: endColumn}
   if (compare(start, end) > 0) {
-    let temp = end
+    const temp = end
     end = start
     start = temp
   }
-  const extent = traversal(end, start)
-  return {position: start, extent}
+  return {start, end}
 }
 
 exports.buildRandomLines = function buildRandomLines (random, maxLines) {
