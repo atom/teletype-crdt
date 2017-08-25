@@ -56,24 +56,24 @@ class Peer {
   }
 
   performRandomEdit (random) {
-    const {position, extent} = getRandomDocumentPositionAndExtent(random, this.document)
-    let operation
-
-    if (random(2) < 1 && compare(extent, ZERO_POINT) > 0) {
-      this.log('Deleting', position, extent)
-      this.document.delete(position, extent)
-      operation = this.documentReplica.delete(position, extent)
-    } else {
+    let operations
+    while (true) {
+      const {position, extent} = getRandomDocumentPositionAndExtent(random, this.document)
       const text = buildRandomLines(random, 3)
-      this.log('Inserting', position, text)
-      this.document.insert(position, text)
-      operation = this.documentReplica.insert(position, text)
+      if (compare(extent, ZERO_POINT) > 0 || text.length > 0) {
+        this.log('setTextInRange', position, extent, JSON.stringify(text))
+        this.document.setTextInRange(position, extent, text)
+        operations = this.documentReplica.setTextInRange(position, extent, text)
+        break
+      }
     }
     this.log('Text', JSON.stringify(this.document.text))
 
-    this.send(operation)
-    this.history.push(operation)
-    this.operations.push(operation)
+    for (const operation of operations) {
+      this.send(operation)
+      this.history.push(operation)
+      this.operations.push(operation)
+    }
   }
 
   undoRandomOperation (random) {

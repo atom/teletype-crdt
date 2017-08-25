@@ -18,8 +18,7 @@ exports.getRandomDocumentPositionAndExtent = function getRandomDocumentPositionA
 }
 
 exports.buildRandomLines = function buildRandomLines (random, maxLines) {
-  const lineCount = random.intBetween(1, maxLines)
-
+  const lineCount = random.intBetween(0, maxLines)
   const lines = []
   for (let i = 0; i < lineCount; i++) {
     const wordCount = lineCount === 1 ? random.intBetween(1, 5) : random(5)

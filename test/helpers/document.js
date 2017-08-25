@@ -1,5 +1,7 @@
 const assert = require('assert')
-const {characterIndexForPosition, extentForText, compare, traverse} = require('../../lib/point-helpers')
+const {
+  ZERO_POINT, characterIndexForPosition, extentForText, compare, traverse
+} = require('../../lib/point-helpers')
 
 module.exports =
 class Document {
@@ -28,6 +30,16 @@ class Document {
       this.insert(operation.position, operation.text)
     } else {
       throw new Error('Unknown operation type')
+    }
+  }
+
+  setTextInRange (position, extent, text) {
+    if (compare(extent, ZERO_POINT) > 0) {
+      this.delete(position, extent)
+    }
+
+    if (text && text.length > 0) {
+      this.insert(position, text)
     }
   }
 

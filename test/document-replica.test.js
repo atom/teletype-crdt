@@ -3,6 +3,7 @@ const Random = require('random-seed')
 const Document = require('./helpers/document')
 const DocumentReplica = require('../lib/document-replica')
 const Peer = require('./helpers/peer')
+const {ZERO_POINT} = require('../lib/point-helpers')
 
 suite('DocumentReplica', () => {
   suite('operations', () => {
@@ -264,19 +265,28 @@ function buildReplica (siteId) {
 }
 
 function performInsert (replica, position, text) {
-  replica.testDocument.insert(position, text)
-  return replica.insert(position, text)
+  return performSetTextInRange(replica, position, ZERO_POINT, text)[0]
 }
 
 function performDelete (replica, position, extent) {
-  replica.testDocument.delete(position, extent)
-  return replica.delete(position, extent)
+  return performSetTextInRange(replica, position, extent, null)[0]
+}
+
+function performSetTextInRange (replica, position, extent, text) {
+  replica.testDocument.setTextInRange(position, extent, text)
+  return replica.setTextInRange(position, extent, text)
 }
 
 function performUndoOrRedoOperation (replica, opId) {
   const {opsToApply, opToSend} = replica.undoOrRedoOperation(opId)
   replica.testDocument.applyMany(opsToApply)
   return opToSend
+}
+
+function applyRemoteOperations (replica, ops) {
+  for (const op of ops) {
+    applyRemoteOperation(replica, op)
+  }
 }
 
 function applyRemoteOperation (replica, op) {
