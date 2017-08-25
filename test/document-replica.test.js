@@ -271,7 +271,7 @@ suite('DocumentReplica', () => {
           const peersWithOutboundOperations = peers.filter(p => !p.isOutboxEmpty())
           if (peersWithOutboundOperations.length === 0 || random(2)) {
             const peer = peers[random(peerCount)]
-            if (random(10) < 2 && peer.history.length > 0) {
+            if (random(10) < 2 && peer.localOperations.length > 0) {
               peer.undoRandomOperation(random)
             } else {
               peer.performRandomEdit(random)
@@ -279,6 +279,10 @@ suite('DocumentReplica', () => {
 
             if (random(10) < 3) {
               remotePositions.push(peer.generateRandomRemotePosition(random))
+            }
+
+            if (random(10) < 3) {
+              peer.verifyDeltaForRandomOperations(random)
             }
 
             assert.equal(peer.documentReplica.getText(), peer.document.text)

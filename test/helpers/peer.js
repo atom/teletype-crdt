@@ -1,3 +1,4 @@
+const assert = require('assert')
 const {getRandomDocumentRange, buildRandomLines} = require('./random')
 const {ZERO_POINT, compare, traverse, extentForText} = require('../../lib/point-helpers')
 const {serializeOperation, deserializeOperation} = require('../../lib/serialization')
@@ -27,8 +28,9 @@ class Peer {
     this.document = new Document(text)
     this.documentReplica = new DocumentReplica(siteId)
     this.deferredOperations = []
-    this.history = []
-    this.operations = [] // includes undo
+    this.localOperations = []
+    this.allOperations = []
+    this.allNonUndoRedoOperations = []
   }
 
   connect (peer) {
@@ -44,11 +46,12 @@ class Peer {
     operation = deserializeOperation(operation)
     this.log('Received', operation)
     const opsToApply = this.documentReplica.applyRemoteOperation(operation)
-    this.log('Applying', opsToApply)
+    // this.log('Applying', opsToApply)
     this.document.applyMany(opsToApply)
     this.log('Text', JSON.stringify(this.document.text))
-    this.history.push(operation)
-    this.operations.push(operation)
+    this.localOperations.push(operation)
+    this.allOperations.push(operation)
+    if (operation.type !== 'undo') this.allNonUndoRedoOperations.push(operation)
   }
 
   isOutboxEmpty () {
@@ -71,22 +74,51 @@ class Peer {
 
     for (const operation of operations) {
       this.send(operation)
-      this.history.push(operation)
-      this.operations.push(operation)
+      this.localOperations.push(operation)
+      this.allOperations.push(operation)
+      this.allNonUndoRedoOperations.push(operation)
     }
   }
 
   undoRandomOperation (random) {
-    const opToUndo = this.history[random(this.history.length)]
+    const opToUndo = this.localOperations[random(this.localOperations.length)]
     if (this.documentReplica.hasAppliedOperation(opToUndo.opId)) {
       this.log('Undoing', opToUndo)
       const {opsToApply, opToSend} = this.documentReplica.undoOrRedoOperation(opToUndo.opId)
       this.log('Applying', opsToApply)
       this.document.applyMany(opsToApply)
       this.log('Text', JSON.stringify(this.document.text))
-      this.operations.push(opToSend)
+      this.allOperations.push(opToSend)
       this.send(opToSend)
     }
+  }
+
+  verifyDeltaForRandomOperations (random) {
+    const n = random(Math.min(10, this.allNonUndoRedoOperations.length))
+    const operationsSet = new Set()
+    for (let i = 0; i < n; i++) {
+      const index = random(this.allNonUndoRedoOperations.length)
+      const operation = this.allNonUndoRedoOperations[index]
+      if (this.documentReplica.hasAppliedOperation(operation.opId)) {
+        operationsSet.add(operation)
+      }
+    }
+    const operations = Array.from(operationsSet)
+    const delta = this.documentReplica.deltaForOperations(operations)
+
+    const documentCopy = new Document(this.document.text)
+    for (const change of delta.slice().reverse()) {
+      documentCopy.setTextInRange(change.newStart, change.newEnd, change.oldText)
+    }
+
+    const replicaCopy = this.copyReplica(this.documentReplica.siteId)
+    for (const operation of operations) {
+      if (!this.documentReplica.isOperationUndone(operation.opId)) {
+        replicaCopy.undoOrRedoOperation(operation.opId)
+      }
+    }
+
+    assert.equal(documentCopy.text, replicaCopy.getText())
   }
 
   deliverRandomOperation (random) {
@@ -104,8 +136,8 @@ class Peer {
 
   copyReplica (siteId) {
     const replica = new DocumentReplica(siteId)
-    for (let i = 0; i < this.operations.length; i++) {
-      replica.applyRemoteOperation(this.operations[i])
+    for (let i = 0; i < this.allOperations.length; i++) {
+      replica.applyRemoteOperation(this.allOperations[i])
     }
     return replica
   }
