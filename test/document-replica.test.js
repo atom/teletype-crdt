@@ -136,40 +136,44 @@ suite('DocumentReplica', () => {
     })
   })
 
-  suite('history', () => {
-    test.only('basic undo and redo', () => {
-      const replicaA = new DocumentReplica(1)
-      const replicaB = new DocumentReplica(2)
-      replicaA.testDocument = new Document('')
-      replicaB.testDocument = new Document('')
-
-      applyRemote(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
-      applyRemote(replicaA, performInsert(replicaB, {row: 0, column: 3}, 'b1 '))
-      applyRemote(replicaB, performInsert(replicaA, {row: 0, column: 6}, 'a2 '))
-      applyRemote(replicaA, performInsert(replicaB, {row: 0, column: 9}, 'b2'))
-      assert.equal(replicaA.testDocument.text, 'a1 b1 a2 b2')
-      assert.equal(replicaB.testDocument.text, 'a1 b1 a2 b2')
+  suite.only('history', () => {
+    test('basic undo and redo', () => {
+      const replicaA = buildReplica(1)
+      const replicaB = buildReplica(2)
+      applyRemoteOperation(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
+      applyRemoteOperation(replicaA, performInsert(replicaB, {row: 0, column: 3}, 'b1 '))
+      applyRemoteOperation(replicaB, performInsert(replicaA, {row: 0, column: 6}, 'a2 '))
+      applyRemoteOperation(replicaA, performInsert(replicaB, {row: 0, column: 9}, 'b2'))
+      applyRemoteOperations(replicaA, performSetTextInRange(replicaB, {row: 0, column: 3}, {row: 0, column: 2}, 'b3'))
+      assert.equal(replicaA.testDocument.text, 'a1 b3 a2 b2')
+      assert.equal(replicaB.testDocument.text, 'a1 b3 a2 b2')
 
       {
-        applyRemote(replicaB, performUndo(replicaA))
+        applyRemoteOperations(replicaA, performUndo(replicaB))
+        assert.equal(replicaA.testDocument.text, 'a1 b1 a2 b2')
+        assert.equal(replicaB.testDocument.text, 'a1 b1 a2 b2')
+      }
+
+      {
+        applyRemoteOperations(replicaB, performUndo(replicaA))
         assert.equal(replicaA.testDocument.text, 'a1 b1 b2')
         assert.equal(replicaB.testDocument.text, 'a1 b1 b2')
       }
 
       {
-        applyRemote(replicaB, performUndo(replicaA))
-        assert.equal(replicaA.testDocument.text, 'b1 b2')
-        assert.equal(replicaB.testDocument.text, 'b1 b2')
+        applyRemoteOperations(replicaB, performRedo(replicaA))
+        assert.equal(replicaA.testDocument.text, 'a1 b1 a2 b2')
+        assert.equal(replicaB.testDocument.text, 'a1 b1 a2 b2')
       }
 
       {
-        applyRemote(replicaB, performRedo(replicaA))
-        assert.equal(replicaA.testDocument.text, 'a1 b1 b2')
-        assert.equal(replicaB.testDocument.text, 'a1 b1 b2')
+        applyRemoteOperations(replicaA, performRedo(replicaB))
+        assert.equal(replicaA.testDocument.text, 'a1 b3 a2 b2')
+        assert.equal(replicaB.testDocument.text, 'a1 b3 a2 b2')
       }
 
       {
-        applyRemote(replicaB, performRedo(replicaA))
+        applyRemoteOperations(replicaA, performUndo(replicaB))
         assert.equal(replicaA.testDocument.text, 'a1 b1 a2 b2')
         assert.equal(replicaB.testDocument.text, 'a1 b1 a2 b2')
       }
@@ -315,6 +319,18 @@ function performDelete (replica, position, extent) {
 function performSetTextInRange (replica, position, extent, text) {
   replica.testDocument.setTextInRange(position, extent, text)
   return replica.setTextInRange(position, extent, text)
+}
+
+function performUndo (replica) {
+  const {opsToApply, opsToSend} = replica.undo()
+  replica.testDocument.applyMany(opsToApply)
+  return opsToSend
+}
+
+function performRedo (replica) {
+  const {opsToApply, opsToSend} = replica.redo()
+  replica.testDocument.applyMany(opsToApply)
+  return opsToSend
 }
 
 function performUndoOrRedoOperation (replica, opId) {
