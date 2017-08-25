@@ -136,10 +136,11 @@ suite('DocumentReplica', () => {
     })
   })
 
-  suite.only('history', () => {
+  suite('history', () => {
     test('basic undo and redo', () => {
       const replicaA = buildReplica(1)
       const replicaB = buildReplica(2)
+
       applyRemoteOperation(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
       applyRemoteOperation(replicaA, performInsert(replicaB, {row: 0, column: 3}, 'b1 '))
       applyRemoteOperation(replicaB, performInsert(replicaA, {row: 0, column: 6}, 'a2 '))
@@ -177,6 +178,45 @@ suite('DocumentReplica', () => {
         assert.equal(replicaA.testDocument.text, 'a1 b1 a2 b2')
         assert.equal(replicaB.testDocument.text, 'a1 b1 a2 b2')
       }
+    })
+
+    test('grouping changes since a checkpoint', () => {
+      const replicaA = buildReplica(1)
+      const replicaB = buildReplica(2)
+
+      applyRemoteOperation(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
+      const checkpoint = replicaA.createCheckpoint()
+      applyRemoteOperations(replicaB, performSetTextInRange(replicaA, {row: 0, column: 1}, {row: 0, column: 2}, '2 a3 '))
+      applyRemoteOperation(replicaB, performDelete(replicaA, {row: 0, column: 5}, {row: 0, column: 1}))
+      applyRemoteOperation(replicaA, performInsert(replicaB, {row: 0, column: 0}, 'b1 '))
+      assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
+      assert.equal(replicaB.testDocument.text, 'b1 a2 a3')
+
+      const changes = replicaA.groupChangesSinceCheckpoint(checkpoint)
+      assert.deepEqual(changes, [
+        {
+          oldStart: {row: 0, column: 4},
+          oldEnd: {row: 0, column: 6},
+          oldText: "1 ",
+          newStart: {row: 0, column: 4},
+          newEnd: {row: 0, column: 8},
+          newText: "2 a3"
+        }
+      ])
+      assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
+      assert.equal(replicaB.testDocument.text, 'b1 a2 a3')
+
+      applyRemoteOperations(replicaB, performUndo(replicaA))
+      assert.equal(replicaA.testDocument.text, 'b1 a1 ')
+      assert.equal(replicaB.testDocument.text, 'b1 a1 ')
+
+      applyRemoteOperations(replicaB, performRedo(replicaA))
+      assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
+      assert.equal(replicaB.testDocument.text, 'b1 a2 a3')
+
+      applyRemoteOperations(replicaB, performUndo(replicaA))
+      assert.equal(replicaA.testDocument.text, 'b1 a1 ')
+      assert.equal(replicaB.testDocument.text, 'b1 a1 ')
     })
   })
 
