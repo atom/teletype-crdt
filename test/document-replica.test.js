@@ -72,7 +72,7 @@ suite('DocumentReplica', () => {
       const op2 = performInsert(replica1, {row: 0, column: 3}, '***')
       integrateOperation(replica2, op2)
 
-      const op1Undo = performUndoOrRedoOperation(replica1, op1.opId)
+      const op1Undo = performUndoOrRedoOperation(replica1, op1)
       integrateOperation(replica2, op1Undo)
 
       assert.equal(replica1.testDocument.text, '***')
@@ -89,7 +89,7 @@ suite('DocumentReplica', () => {
       const op2 = performDelete(replica1, {row: 0, column: 3}, {row: 0, column: 6})
       integrateOperation(replica2, op2)
 
-      const op1Undo = performUndoOrRedoOperation(replica1, op1.opId)
+      const op1Undo = performUndoOrRedoOperation(replica1, op1)
       integrateOperation(replica2, op1Undo)
 
       assert.equal(replica1.testDocument.text, '')
@@ -105,7 +105,7 @@ suite('DocumentReplica', () => {
       const op2 = performDelete(replica2, {row: 0, column: 3}, {row: 0, column: 6})
       integrateOperation(replica1, op2)
       integrateOperation(replica2, op1)
-      const op2Undo = performUndoOrRedoOperation(replica1, op2.opId)
+      const op2Undo = performUndoOrRedoOperation(replica1, op2)
       integrateOperation(replica2, op2Undo)
 
       assert.equal(replica1.testDocument.text, 'AEFG')
@@ -117,9 +117,9 @@ suite('DocumentReplica', () => {
 
       performInsert(replica, {row: 0, column: 0}, 'ABCDEFG')
       const deleteOp = performDelete(replica, {row: 0, column: 1}, {row: 0, column: 6})
-      performUndoOrRedoOperation(replica, deleteOp.opId)
+      performUndoOrRedoOperation(replica, deleteOp)
       performInsert(replica, {row: 0, column: 3}, '***')
-      performUndoOrRedoOperation(replica, deleteOp.opId) // Redo
+      performUndoOrRedoOperation(replica, deleteOp) // Redo
 
       assert.equal(replica.testDocument.text, 'A***G')
     })
@@ -259,7 +259,7 @@ suite('DocumentReplica', () => {
     for (var i = 0; i < 1000; i++) {
       const peers = Peer.buildNetwork(peerCount, '')
       let seed = initialSeed + i
-      // seed = 1496346683429
+      // seed = 1503939414648
       // global.enableLog = true
       const failureMessage = `Random seed: ${seed}`
       try {
@@ -310,12 +310,14 @@ suite('DocumentReplica', () => {
                   site: replicaCopy.siteId,
                   seq: (replicaCopy.maxSeqsBySite[remotePosition.site] || 0) + 1
                 }
-                const [insertionAtRemotePosition] = replicaCopy.insertRemote(
-                  Object.assign({opId, text: 'X'}, remotePosition)
-                )
+
+                const insertionOp = Object.assign({type: 'insert', opId, text: 'X'}, remotePosition)
+                replicaCopy.insertRemote(insertionOp)
+                const changes = replicaCopy.deltaForOperations([insertionOp])
+
                 assert.deepEqual(
                   peer.documentReplica.getLocalPositionSync(remotePosition),
-                  insertionAtRemotePosition.position,
+                  changes[0].oldStart,
                   'Site: ' + peer.siteId + '\n' + failureMessage
                 )
               }
@@ -366,21 +368,21 @@ function performSetTextInRange (replica, start, end, text) {
 }
 
 function performUndo (replica) {
-  const {opsToApply, opsToSend} = replica.undo()
-  replica.testDocument.applyMany(opsToApply)
-  return opsToSend
+  const {changes, operations} = replica.undo()
+  replica.testDocument.applyDelta(changes)
+  return operations
 }
 
 function performRedo (replica) {
-  const {opsToApply, opsToSend} = replica.redo()
-  replica.testDocument.applyMany(opsToApply)
-  return opsToSend
+  const {changes, operations} = replica.redo()
+  replica.testDocument.applyDelta(changes)
+  return operations
 }
 
-function performUndoOrRedoOperation (replica, opId) {
-  const {opsToApply, opToSend} = replica.undoOrRedoOperation(opId)
-  replica.testDocument.applyMany(opsToApply)
-  return opToSend
+function performUndoOrRedoOperation (replica, operationToUndo) {
+  const {changes, operation} = replica.undoOrRedoOperation(operationToUndo)
+  replica.testDocument.applyDelta(changes)
+  return operation
 }
 
 function integrateOperations (replica, ops) {
@@ -390,5 +392,5 @@ function integrateOperations (replica, ops) {
 }
 
 function integrateOperation (replica, op) {
-  replica.testDocument.applyMany(replica.integrateOperation(op))
+  replica.testDocument.applyDelta(replica.integrateOperation(op))
 }

@@ -9,25 +9,10 @@ class Document {
     this.text = text
   }
 
-  applyMany (operations) {
-    assert(Array.isArray(operations))
-
-    for (let i = 0; i < operations.length; i++) {
-      this.apply(operations[i])
-    }
-  }
-
-  apply ({type, position, extent, text}) {
-    if (type === 'delete') {
-      const end  = traverse(position, extent)
-      const textToDelete = this.getTextInRange(position, end)
-      assert.equal(text, textToDelete)
-      this.delete(position, end)
-    } else if (type === 'insert') {
-      assert.deepEqual(extent, extentForText(text))
-      this.insert(position, text)
-    } else {
-      throw new Error('Unknown operation type')
+  applyDelta (changes) {
+    for (let i = changes.length - 1; i >= 0; i--) {
+      const {oldStart, oldEnd, newText} = changes[i]
+      this.setTextInRange(oldStart, oldEnd, newText)
     }
   }
 

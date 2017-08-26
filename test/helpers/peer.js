@@ -45,9 +45,9 @@ class Peer {
   receive (operation) {
     operation = deserializeOperation(operation)
     this.log('Received', operation)
-    const opsToApply = this.documentReplica.integrateOperation(operation)
-    // this.log('Applying', opsToApply)
-    this.document.applyMany(opsToApply)
+    const changes = this.documentReplica.integrateOperation(operation)
+    // this.log('Applying delta', changes)
+    this.document.applyDelta(changes)
     this.log('Text', JSON.stringify(this.document.text))
     this.localOperations.push(operation)
     this.allOperations.push(operation)
@@ -84,12 +84,12 @@ class Peer {
     const opToUndo = this.localOperations[random(this.localOperations.length)]
     if (this.documentReplica.hasAppliedOperation(opToUndo.opId)) {
       this.log('Undoing', opToUndo)
-      const {opsToApply, opToSend} = this.documentReplica.undoOrRedoOperation(opToUndo.opId)
-      this.log('Applying', opsToApply)
-      this.document.applyMany(opsToApply)
+      const {operation, changes} = this.documentReplica.undoOrRedoOperation(opToUndo)
+      this.log('Applying delta', changes)
+      this.document.applyDelta(changes)
       this.log('Text', JSON.stringify(this.document.text))
-      this.allOperations.push(opToSend)
-      this.send(opToSend)
+      this.allOperations.push(operation)
+      this.send(operation)
     }
   }
 
@@ -114,7 +114,7 @@ class Peer {
     const replicaCopy = this.copyReplica(this.documentReplica.siteId)
     for (const operation of operations) {
       if (!this.documentReplica.isOperationUndone(operation.opId)) {
-        replicaCopy.undoOrRedoOperation(operation.opId)
+        replicaCopy.undoOrRedoOperation(operation)
       }
     }
 
