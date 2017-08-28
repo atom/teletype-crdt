@@ -180,6 +180,23 @@ suite('DocumentReplica', () => {
       }
     })
 
+    test('undoing and redoing an operation that occurred adjacent to a checkpoint', () => {
+      const replicaA = buildReplica(1)
+      performInsert(replicaA, {row: 0, column: 0}, 'a')
+      performInsert(replicaA, {row: 0, column: 1}, 'b')
+      replicaA.createCheckpoint()
+      performInsert(replicaA, {row: 0, column: 2}, 'c')
+
+      replicaA.undo()
+      assert.equal(replicaA.getText(), 'ab')
+      replicaA.undo()
+      assert.equal(replicaA.getText(), 'a')
+      replicaA.redo()
+      assert.equal(replicaA.getText(), 'ab')
+      replicaA.redo()
+      assert.equal(replicaA.getText(), 'abc')
+    })
+
     test('grouping changes since a checkpoint', () => {
       const replicaA = buildReplica(1)
       const replicaB = buildReplica(2)
