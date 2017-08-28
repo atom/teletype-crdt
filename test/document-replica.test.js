@@ -258,6 +258,37 @@ suite('DocumentReplica', () => {
       assert.equal(replicaA.testDocument.text, 'b1 a1 ')
       assert.equal(replicaB.testDocument.text, 'b1 a1 ')
     })
+
+    test('reverting to a checkpoint', () => {
+      const replicaA = buildReplica(1)
+      const replicaB = buildReplica(2)
+
+      integrateOperation(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
+      const checkpoint = replicaA.createCheckpoint()
+      integrateOperations(replicaB, performSetTextInRange(replicaA, {row: 0, column: 1}, {row: 0, column: 3}, '2 a3 '))
+      integrateOperation(replicaB, performDelete(replicaA, {row: 0, column: 5}, {row: 0, column: 6}))
+      integrateOperation(replicaA, performInsert(replicaB, {row: 0, column: 0}, 'b1 '))
+      assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
+      assert.equal(replicaB.testDocument.text, 'b1 a2 a3')
+
+      integrateOperations(replicaB, performRevertToCheckpoint(replicaA, checkpoint))
+      assert.equal(replicaA.testDocument.text, 'b1 a1 ')
+      assert.equal(replicaB.testDocument.text, 'b1 a1 ')
+    })
+
+    test('does not add empty transactions to the undo stack', () => {
+      const replicaA = buildReplica(1)
+      const replicaB = buildReplica(2)
+      integrateOperation(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a'))
+      integrateOperation(replicaB, performInsert(replicaA, {row: 0, column: 1}, 'b'))
+      const checkpoint = replicaA.createCheckpoint()
+      integrateOperation(replicaA, performInsert(replicaB, {row: 0, column: 2}, 'c'))
+      replicaA.groupChangesSinceCheckpoint(checkpoint)
+      integrateOperations(replicaB, performUndo(replicaA))
+
+      assert.equal(replicaA.testDocument.text, 'ac')
+      assert.equal(replicaB.testDocument.text, 'ac')
+    })
   })
 
   suite('positions', () => {
@@ -423,6 +454,12 @@ function performUndoOrRedoOperation (replica, operationToUndo) {
   const {changes, operation} = replica.undoOrRedoOperation(operationToUndo)
   replica.testDocument.applyDelta(changes)
   return operation
+}
+
+function performRevertToCheckpoint (replica, checkpoint) {
+  const {changes, operations} = replica.revertToCheckpoint(checkpoint)
+  replica.testDocument.applyDelta(changes)
+  return operations
 }
 
 function integrateOperations (replica, ops) {
