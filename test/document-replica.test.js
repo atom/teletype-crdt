@@ -197,6 +197,29 @@ suite('DocumentReplica', () => {
       assert.equal(replicaA.getText(), 'abc')
     })
 
+    test('clearing undo and redo stacks', () => {
+      const replicaA = buildReplica(1)
+      performInsert(replicaA, {row: 0, column: 0}, 'a')
+      replicaA.clearUndoStack()
+      performInsert(replicaA, {row: 0, column: 1}, 'b')
+      performInsert(replicaA, {row: 0, column: 2}, 'c')
+      replicaA.undo()
+      replicaA.undo()
+      assert.equal(replicaA.getText(), 'a')
+      replicaA.redo()
+      assert.equal(replicaA.getText(), 'ab')
+      replicaA.clearRedoStack()
+      replicaA.redo()
+      assert.equal(replicaA.getText(), 'ab')
+
+      // Clears the redo stack on changes
+      replicaA.undo()
+      performInsert(replicaA, {row: 0, column: 1}, 'd')
+      assert.equal(replicaA.getText(), 'ad')
+      replicaA.redo()
+      assert.equal(replicaA.getText(), 'ad')
+    })
+
     test('grouping changes since a checkpoint', () => {
       const replicaA = buildReplica(1)
       const replicaB = buildReplica(2)
