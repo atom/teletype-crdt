@@ -302,34 +302,26 @@ suite('DocumentReplica', () => {
       assert.equal(replica.getText(), 'abc')
     })
 
-    test('reverting to a checkpoint after undoing and redoing an operation', function() {
-      const replicaA = buildReplica(1)
-      const replicaB = buildReplica(2)
+    test('reverting to a checkpoint after undoing and redoing an operation', () => {
+      const replica = buildReplica(1)
 
-      integrateOperation(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
-      const checkpoint1 = replicaA.createCheckpoint()
-      integrateOperation(replicaB, performInsert(replicaA, {row: 0, column: 3}, 'a2 '))
-      const checkpoint2 = replicaA.createCheckpoint()
-      integrateOperation(replicaB, performInsert(replicaA, {row: 0, column: 6}, 'a3 '))
-      integrateOperation(replicaA, performInsert(replicaB, {row: 0, column: 0}, 'b1 '))
-      assert.equal(replicaA.testDocument.text, 'b1 a1 a2 a3 ')
-      assert.equal(replicaB.testDocument.text, 'b1 a1 a2 a3 ')
+      performInsert(replica, {row: 0, column: 0}, 'a')
+      const checkpoint1 = replica.createCheckpoint()
+      performInsert(replica, {row: 0, column: 1}, 'b')
+      const checkpoint2 = replica.createCheckpoint()
 
-      integrateOperations(replicaB, performUndo(replicaA))
-      assert.equal(replicaA.testDocument.text, 'b1 a1 a2 ')
-      assert.equal(replicaB.testDocument.text, 'b1 a1 a2 ')
+      replica.undo()
+      assert.equal(replica.getText(), 'a')
+      replica.redo()
+      assert.equal(replica.getText(), 'ab')
 
-      integrateOperations(replicaB, performRedo(replicaA))
-      assert.equal(replicaA.testDocument.text, 'b1 a1 a2 a3 ')
-      assert.equal(replicaB.testDocument.text, 'b1 a1 a2 a3 ')
+      performInsert(replica, {row: 0, column: 2}, 'c')
 
-      integrateOperations(replicaB, performRevertToCheckpoint(replicaA, checkpoint2))
-      assert.equal(replicaA.testDocument.text, 'b1 a1 a2 ')
-      assert.equal(replicaB.testDocument.text, 'b1 a1 a2 ')
+      replica.revertToCheckpoint(checkpoint2)
+      assert.equal(replica.getText(), 'ab')
 
-      integrateOperations(replicaB, performRevertToCheckpoint(replicaA, checkpoint1))
-      assert.equal(replicaA.testDocument.text, 'b1 a1 ')
-      assert.equal(replicaB.testDocument.text, 'b1 a1 ')
+      replica.revertToCheckpoint(checkpoint1)
+      assert.equal(replica.getText(), 'a')
     })
 
     test('does not allow undoing past a barrier checkpoint', () => {
