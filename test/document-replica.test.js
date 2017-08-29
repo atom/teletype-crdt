@@ -242,7 +242,7 @@ suite('DocumentReplica', () => {
       assert.equal(replicaB.testDocument.text, 'b1 a1 ')
 
       // Delete a checkpoint
-      assert.deepEqual(replicaA.groupChangesSinceCheckpoint(checkpoint, null, true), [])
+      assert.deepEqual(replicaA.groupChangesSinceCheckpoint(checkpoint, {deleteCheckpoint: true}), [])
       assert.equal(replicaA.groupChangesSinceCheckpoint(checkpoint), false)
     })
 
