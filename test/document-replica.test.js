@@ -324,6 +324,16 @@ suite('DocumentReplica', () => {
       assert.equal(replica.getText(), 'a')
     })
 
+    test('undoing preserves checkpoint created prior to any operations', () => {
+      const replica = buildReplica(1)
+      const checkpoint = replica.createCheckpoint()
+      replica.undo()
+      performInsert(replica, {row: 0, column: 0}, 'a')
+
+      replica.revertToCheckpoint(checkpoint)
+      assert.equal(replica.getText(), '')
+    })
+
     test('does not allow undoing past a barrier checkpoint', () => {
       const replica = buildReplica(1)
       performInsert(replica, {row: 0, column: 0}, 'a')
