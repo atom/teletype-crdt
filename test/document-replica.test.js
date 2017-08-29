@@ -241,7 +241,7 @@ suite('DocumentReplica', () => {
       assert.equal(replicaA.testDocument.text, 'b1 a1 ')
       assert.equal(replicaB.testDocument.text, 'b1 a1 ')
 
-      // Delete a checkpoint
+      // Delete checkpoint
       assert.deepEqual(replicaA.groupChangesSinceCheckpoint(checkpoint, {deleteCheckpoint: true}), [])
       assert.equal(replicaA.groupChangesSinceCheckpoint(checkpoint), false)
     })
@@ -261,6 +261,10 @@ suite('DocumentReplica', () => {
       integrateOperations(replicaB, performRevertToCheckpoint(replicaA, checkpoint))
       assert.equal(replicaA.testDocument.text, 'b1 a1 ')
       assert.equal(replicaB.testDocument.text, 'b1 a1 ')
+
+      // Delete checkpoint
+      replicaA.revertToCheckpoint(checkpoint, {deleteCheckpoint: true})
+      assert.equal(replicaA.revertToCheckpoint(checkpoint), false)
     })
 
     test('getting changes since a checkpoint', () => {
@@ -524,8 +528,8 @@ function performUndoOrRedoOperation (replica, operationToUndo) {
   return operation
 }
 
-function performRevertToCheckpoint (replica, checkpoint) {
-  const {changes, operations} = replica.revertToCheckpoint(checkpoint)
+function performRevertToCheckpoint (replica, checkpoint, options) {
+  const {changes, operations} = replica.revertToCheckpoint(checkpoint, options)
   replica.testDocument.applyDelta(changes)
   return operations
 }
