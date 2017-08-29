@@ -180,23 +180,6 @@ suite('DocumentReplica', () => {
       }
     })
 
-    test('undoing and redoing an operation that occurred adjacent to a checkpoint', () => {
-      const replica = buildReplica(1)
-      performInsert(replica, {row: 0, column: 0}, 'a')
-      performInsert(replica, {row: 0, column: 1}, 'b')
-      replica.createCheckpoint()
-      performInsert(replica, {row: 0, column: 2}, 'c')
-
-      replica.undo()
-      assert.equal(replica.getText(), 'ab')
-      replica.undo()
-      assert.equal(replica.getText(), 'a')
-      replica.redo()
-      assert.equal(replica.getText(), 'ab')
-      replica.redo()
-      assert.equal(replica.getText(), 'abc')
-    })
-
     test('clearing undo and redo stacks', () => {
       const replica = buildReplica(1)
       performInsert(replica, {row: 0, column: 0}, 'a')
@@ -278,6 +261,38 @@ suite('DocumentReplica', () => {
       integrateOperations(replicaB, performRevertToCheckpoint(replicaA, checkpoint))
       assert.equal(replicaA.testDocument.text, 'b1 a1 ')
       assert.equal(replicaB.testDocument.text, 'b1 a1 ')
+    })
+
+    test('undoing and redoing an operation that occurred adjacent to a checkpoint', () => {
+      const replica = buildReplica(1)
+      performInsert(replica, {row: 0, column: 0}, 'a')
+      performInsert(replica, {row: 0, column: 1}, 'b')
+      replica.createCheckpoint()
+      performInsert(replica, {row: 0, column: 2}, 'c')
+
+      replica.undo()
+      assert.equal(replica.getText(), 'ab')
+      replica.undo()
+      assert.equal(replica.getText(), 'a')
+      replica.redo()
+      assert.equal(replica.getText(), 'ab')
+      replica.redo()
+      assert.equal(replica.getText(), 'abc')
+    })
+
+    test('does not allow undoing past a barrier checkpoint', () => {
+      const replica = buildReplica(1)
+      performInsert(replica, {row: 0, column: 0}, 'a')
+      performInsert(replica, {row: 0, column: 1}, 'b')
+      replica.createCheckpoint({isBarrier: true})
+      performInsert(replica, {row: 0, column: 2}, 'c')
+      replica.createCheckpoint({isBarrier: false})
+
+      assert.equal(replica.getText(), 'abc')
+      replica.undo()
+      assert.equal(replica.getText(), 'ab')
+      assert.equal(replica.undo(), null)
+      assert.equal(replica.getText(), 'ab')
     })
 
     test('does not add empty transactions to the undo stack', () => {
