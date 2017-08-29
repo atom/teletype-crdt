@@ -263,6 +263,24 @@ suite('DocumentReplica', () => {
       assert.equal(replicaB.testDocument.text, 'b1 a1 ')
     })
 
+    test('getting changes since a checkpoint', () => {
+      const replicaA = buildReplica(1)
+      const replicaB = buildReplica(2)
+
+      performInsert(replicaA, {row: 0, column: 0}, 'a1 ')
+      const checkpoint = replicaA.createCheckpoint()
+      performSetTextInRange(replicaA, {row: 0, column: 1}, {row: 0, column: 3}, '2 a3 ')
+      performDelete(replicaA, {row: 0, column: 5}, {row: 0, column: 6})
+      integrateOperation(replicaA, performInsert(replicaB, {row: 0, column: 0}, 'b1 '))
+      assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
+
+      const changesSinceCheckpoint = replicaA.getChangesSinceCheckpoint(checkpoint)
+      for (const change of changesSinceCheckpoint.reverse()) {
+        replicaA.testDocument.setTextInRange(change.newStart, change.newEnd, change.oldText)
+      }
+      assert.equal(replicaA.testDocument.text, 'b1 a1 ')
+    })
+
     test('undoing and redoing an operation that occurred adjacent to a checkpoint', () => {
       const replica = buildReplica(1)
       performInsert(replica, {row: 0, column: 0}, 'a')
