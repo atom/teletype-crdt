@@ -257,6 +257,10 @@ suite('DocumentReplica', () => {
       integrateOperations(replicaB, performUndo(replicaA))
       assert.equal(replicaA.testDocument.text, 'b1 a1 ')
       assert.equal(replicaB.testDocument.text, 'b1 a1 ')
+
+      // Delete a checkpoint
+      assert.deepEqual(replicaA.groupChangesSinceCheckpoint(checkpoint, null, true), [])
+      assert.equal(replicaA.groupChangesSinceCheckpoint(checkpoint), false)
     })
 
     test('reverting to a checkpoint', () => {
@@ -288,6 +292,37 @@ suite('DocumentReplica', () => {
 
       assert.equal(replicaA.testDocument.text, 'ac')
       assert.equal(replicaB.testDocument.text, 'ac')
+    })
+
+    test('applying a grouping interval', () => {
+      const replica = buildReplica(1)
+      replica.getNow = () => now
+
+      let now = 0
+      performInsert(replica, {row: 0, column: 0}, 'a')
+      replica.applyGroupingInterval(101)
+
+      now += 100
+      performInsert(replica, {row: 0, column: 1}, 'b')
+      replica.applyGroupingInterval(201)
+
+      now += 200
+      performInsert(replica, {row: 0, column: 2}, 'c')
+      replica.applyGroupingInterval(201)
+
+      // Not grouped with previous transaction because its associated grouping
+      // interval is 201 and we always respect the minimum associated interval
+      // between the last and penultimate transaction.
+      now += 300
+      performInsert(replica, {row: 0, column: 3}, 'd')
+      replica.applyGroupingInterval(301)
+
+
+      assert.equal(replica.testDocument.text, 'abcd')
+      performUndo(replica)
+      assert.equal(replica.testDocument.text, 'abc')
+      performUndo(replica)
+      assert.equal(replica.testDocument.text, '')
     })
   })
 
