@@ -252,6 +252,71 @@ suite('DocumentReplica', () => {
         }
       })
     })
+
+    test('deferring marker updates until the dependencies of their logical ranges arrive', () => {
+      const replica1 = buildReplica(1)
+      const replica2 = buildReplica(2)
+
+      const insertion1 = performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG')
+      const insertion2 = performInsert(replica1, {row: 0, column: 4}, 'WXYZ')
+
+      const layerUpdate = replica1.updateMarkerLayers({
+        1: {
+          1: { // This only depends on insertion 1
+            range: {
+              start: {row: 0, column: 1},
+              end: {row: 0, column: 3}
+            }
+          },
+          2: { // This depends on insertion 2
+            range: {
+              start: {row: 0, column: 5},
+              end: {row: 0, column: 7}
+            }
+          }
+        }
+      })
+
+      replica2.integrateOperations(insertion1)
+
+      {
+        const {markerLayerUpdates} = replica2.integrateOperations(layerUpdate)
+        assert.deepEqual(markerLayerUpdates, {
+          1: {
+            1: {
+              1: {
+                range: {
+                  start: {row: 0, column: 1},
+                  end: {row: 0, column: 3}
+                },
+                exclusive: false,
+                reversed: false,
+                tailed: true
+              }
+            }
+          }
+        })
+      }
+
+      {
+        const {markerLayerUpdates} = replica2.integrateOperations(insertion2)
+        assert.deepEqual(markerLayerUpdates, {
+          1: {
+            1: {
+              2: {
+                range: {
+                  start: {row: 0, column: 5},
+                  end: {row: 0, column: 7}
+                },
+                exclusive: false,
+                reversed: false,
+                tailed: true
+              }
+            }
+          }
+        })
+      }
+    })
   })
 
   suite('history', () => {
@@ -519,9 +584,9 @@ suite('DocumentReplica', () => {
       const replica2 = buildReplica(2)
       integrateOperations(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
 
-      const ops1 = performInsert(replica1, {row: 0, column: 6}, '+++')
+      const insertion = performInsert(replica1, {row: 0, column: 6}, '+++')
       performInsert(replica2, {row: 0, column: 2}, '**')
-      integrateOperations(replica2, ops1)
+      integrateOperations(replica2, insertion)
 
       assert.deepEqual(
         replica2.getLocalPositionSync(replica1.getRemotePosition({row: 0, column: 9})),
