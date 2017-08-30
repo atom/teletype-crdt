@@ -45,9 +45,9 @@ class Peer {
   receive (operation) {
     operation = deserializeOperation(operation)
     this.log('Received', operation)
-    const changes = this.documentReplica.integrateOperation(operation)
+    const {textUpdates} = this.documentReplica.integrateOperation(operation)
     // this.log('Applying delta', changes)
-    this.document.applyDelta(changes)
+    this.document.applyDelta(textUpdates)
     this.log('Text', JSON.stringify(this.document.text))
     this.localOperations.push(operation)
     this.allOperations.push(operation)
@@ -84,9 +84,9 @@ class Peer {
     const opToUndo = this.localOperations[random(this.localOperations.length)]
     if (this.documentReplica.hasAppliedOperation(opToUndo.opId)) {
       this.log('Undoing', opToUndo)
-      const {operation, changes} = this.documentReplica.undoOrRedoOperation(opToUndo)
-      this.log('Applying delta', changes)
-      this.document.applyDelta(changes)
+      const {operation, textUpdates} = this.documentReplica.undoOrRedoOperation(opToUndo)
+      this.log('Applying delta', textUpdates)
+      this.document.applyDelta(textUpdates)
       this.log('Text', JSON.stringify(this.document.text))
       this.allOperations.push(operation)
       this.send(operation)

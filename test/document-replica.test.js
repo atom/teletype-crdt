@@ -543,26 +543,26 @@ function performSetTextInRange (replica, start, end, text) {
 }
 
 function performUndo (replica) {
-  const {changes, operations} = replica.undo()
-  replica.testDocument.applyDelta(changes)
+  const {textUpdates, operations} = replica.undo()
+  replica.testDocument.applyDelta(textUpdates)
   return operations
 }
 
 function performRedo (replica) {
-  const {changes, operations} = replica.redo()
-  replica.testDocument.applyDelta(changes)
+  const {textUpdates, operations} = replica.redo()
+  replica.testDocument.applyDelta(textUpdates)
   return operations
 }
 
 function performUndoOrRedoOperation (replica, operationToUndo) {
-  const {changes, operation} = replica.undoOrRedoOperation(operationToUndo)
-  replica.testDocument.applyDelta(changes)
+  const {textUpdates, operation} = replica.undoOrRedoOperation(operationToUndo)
+  replica.testDocument.applyDelta(textUpdates)
   return operation
 }
 
 function performRevertToCheckpoint (replica, checkpoint, options) {
-  const {changes, operations} = replica.revertToCheckpoint(checkpoint, options)
-  replica.testDocument.applyDelta(changes)
+  const {textUpdates, operations} = replica.revertToCheckpoint(checkpoint, options)
+  replica.testDocument.applyDelta(textUpdates)
   return operations
 }
 
@@ -573,5 +573,5 @@ function integrateOperations (replica, ops) {
 }
 
 function integrateOperation (replica, op) {
-  replica.testDocument.applyDelta(replica.integrateOperation(op))
+  replica.testDocument.applyDelta(replica.integrateOperation(op).textUpdates)
 }
