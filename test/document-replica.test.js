@@ -11,10 +11,10 @@ suite('DocumentReplica', () => {
       const replica1 = buildReplica(1)
       const replica2 = buildReplica(2)
 
-      const op1 = performInsert(replica1, {row: 0, column: 0}, 'a')
-      const op2 = performInsert(replica2, {row: 0, column: 0}, 'b')
-      integrateOperation(replica1, op2)
-      integrateOperation(replica2, op1)
+      const ops1 = performInsert(replica1, {row: 0, column: 0}, 'a')
+      const ops2 = performInsert(replica2, {row: 0, column: 0}, 'b')
+      integrateOperations(replica1, ops2)
+      integrateOperations(replica2, ops1)
 
       assert.equal(replica1.testDocument.text, 'ab')
       assert.equal(replica2.testDocument.text, 'ab')
@@ -23,12 +23,12 @@ suite('DocumentReplica', () => {
     test('concurrent inserts at the same position inside a previous insertion', () => {
       const replica1 = buildReplica(1)
       const replica2 = buildReplica(2)
-      integrateOperation(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
+      integrateOperations(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
 
-      const op1 = performInsert(replica1, {row: 0, column: 2}, '+++')
-      const op2 = performInsert(replica2, {row: 0, column: 2}, '***')
-      integrateOperation(replica1, op2)
-      integrateOperation(replica2, op1)
+      const ops1 = performInsert(replica1, {row: 0, column: 2}, '+++')
+      const ops2 = performInsert(replica2, {row: 0, column: 2}, '***')
+      integrateOperations(replica1, ops2)
+      integrateOperations(replica2, ops1)
 
       assert.equal(replica1.testDocument.text, 'AB+++***CDEFG')
       assert.equal(replica2.testDocument.text, 'AB+++***CDEFG')
@@ -37,12 +37,12 @@ suite('DocumentReplica', () => {
     test('concurrent inserts at different positions inside a previous insertion', () => {
       const replica1 = buildReplica(1)
       const replica2 = buildReplica(2)
-      integrateOperation(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
+      integrateOperations(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
 
-      const op1 = performInsert(replica1, {row: 0, column: 6}, '+++')
-      const op2 = performInsert(replica2, {row: 0, column: 2}, '***')
-      integrateOperation(replica1, op2)
-      integrateOperation(replica2, op1)
+      const ops1 = performInsert(replica1, {row: 0, column: 6}, '+++')
+      const ops2 = performInsert(replica2, {row: 0, column: 2}, '***')
+      integrateOperations(replica1, ops2)
+      integrateOperations(replica2, ops1)
 
       assert.equal(replica1.testDocument.text, 'AB***CDEF+++G')
       assert.equal(replica2.testDocument.text, 'AB***CDEF+++G')
@@ -51,12 +51,12 @@ suite('DocumentReplica', () => {
     test('concurrent overlapping deletions', () => {
       const replica1 = buildReplica(1)
       const replica2 = buildReplica(2)
-      integrateOperation(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
+      integrateOperations(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
 
-      const op1 = performDelete(replica1, {row: 0, column: 2}, {row: 0, column: 5})
-      const op2 = performDelete(replica2, {row: 0, column: 4}, {row: 0, column: 6})
-      integrateOperation(replica1, op2)
-      integrateOperation(replica2, op1)
+      const ops1 = performDelete(replica1, {row: 0, column: 2}, {row: 0, column: 5})
+      const ops2 = performDelete(replica2, {row: 0, column: 4}, {row: 0, column: 6})
+      integrateOperations(replica1, ops2)
+      integrateOperations(replica2, ops1)
 
       assert.equal(replica1.testDocument.text, 'ABG')
       assert.equal(replica2.testDocument.text, 'ABG')
@@ -66,14 +66,14 @@ suite('DocumentReplica', () => {
       const replica1 = buildReplica(1)
       const replica2 = buildReplica(2)
 
-      const op1 = performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG')
-      integrateOperation(replica2, op1)
+      const ops1 = performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG')
+      integrateOperations(replica2, ops1)
 
-      const op2 = performInsert(replica1, {row: 0, column: 3}, '***')
-      integrateOperation(replica2, op2)
+      const ops2 = performInsert(replica1, {row: 0, column: 3}, '***')
+      integrateOperations(replica2, ops2)
 
-      const op1Undo = performUndoOrRedoOperation(replica1, op1)
-      integrateOperation(replica2, op1Undo)
+      const ops1Undo = performUndoOrRedoOperations(replica1, ops1)
+      integrateOperations(replica2, ops1Undo)
 
       assert.equal(replica1.testDocument.text, '***')
       assert.equal(replica2.testDocument.text, '***')
@@ -83,14 +83,14 @@ suite('DocumentReplica', () => {
       const replica1 = buildReplica(1)
       const replica2 = buildReplica(2)
 
-      const op1 = performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG')
-      integrateOperation(replica2, op1)
+      const ops1 = performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG')
+      integrateOperations(replica2, ops1)
 
-      const op2 = performDelete(replica1, {row: 0, column: 3}, {row: 0, column: 6})
-      integrateOperation(replica2, op2)
+      const ops2 = performDelete(replica1, {row: 0, column: 3}, {row: 0, column: 6})
+      integrateOperations(replica2, ops2)
 
-      const op1Undo = performUndoOrRedoOperation(replica1, op1)
-      integrateOperation(replica2, op1Undo)
+      const ops1Undo = performUndoOrRedoOperations(replica1, ops1)
+      integrateOperations(replica2, ops1Undo)
 
       assert.equal(replica1.testDocument.text, '')
       assert.equal(replica2.testDocument.text, '')
@@ -99,14 +99,14 @@ suite('DocumentReplica', () => {
     test('undoing a deletion that overlaps another concurrent deletion', () => {
       const replica1 = buildReplica(1)
       const replica2 = buildReplica(2)
-      integrateOperation(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
+      integrateOperations(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
 
-      const op1 = performDelete(replica1, {row: 0, column: 1}, {row: 0, column: 4})
-      const op2 = performDelete(replica2, {row: 0, column: 3}, {row: 0, column: 6})
-      integrateOperation(replica1, op2)
-      integrateOperation(replica2, op1)
-      const op2Undo = performUndoOrRedoOperation(replica1, op2)
-      integrateOperation(replica2, op2Undo)
+      const ops1 = performDelete(replica1, {row: 0, column: 1}, {row: 0, column: 4})
+      const ops2 = performDelete(replica2, {row: 0, column: 3}, {row: 0, column: 6})
+      integrateOperations(replica1, ops2)
+      integrateOperations(replica2, ops1)
+      const ops2Undo = performUndoOrRedoOperations(replica1, ops2)
+      integrateOperations(replica2, ops2Undo)
 
       assert.equal(replica1.testDocument.text, 'AEFG')
       assert.equal(replica2.testDocument.text, 'AEFG')
@@ -116,10 +116,10 @@ suite('DocumentReplica', () => {
       const replica = buildReplica(1)
 
       performInsert(replica, {row: 0, column: 0}, 'ABCDEFG')
-      const deleteOp = performDelete(replica, {row: 0, column: 1}, {row: 0, column: 6})
-      performUndoOrRedoOperation(replica, deleteOp)
+      const deleteOps = performDelete(replica, {row: 0, column: 1}, {row: 0, column: 6})
+      performUndoOrRedoOperations(replica, deleteOps)
       performInsert(replica, {row: 0, column: 3}, '***')
-      performUndoOrRedoOperation(replica, deleteOp) // Redo
+      performUndoOrRedoOperations(replica, deleteOps) // Redo
 
       assert.equal(replica.testDocument.text, 'A***G')
     })
@@ -128,8 +128,8 @@ suite('DocumentReplica', () => {
       const localReplica = buildReplica(1)
       const remoteReplica = buildReplica(1)
 
-      integrateOperation(localReplica, performInsert(remoteReplica, {row: 0, column: 0}, 'ABCDEFG'))
-      integrateOperation(localReplica, performInsert(remoteReplica, {row: 0, column: 3}, '+++'))
+      integrateOperations(localReplica, performInsert(remoteReplica, {row: 0, column: 0}, 'ABCDEFG'))
+      integrateOperations(localReplica, performInsert(remoteReplica, {row: 0, column: 3}, '+++'))
       performInsert(localReplica, {row: 0, column: 1}, '***')
 
       assert.equal(localReplica.testDocument.text, 'A***BC+++DEFG')
@@ -141,10 +141,10 @@ suite('DocumentReplica', () => {
       const replicaA = buildReplica(1)
       const replicaB = buildReplica(2)
 
-      integrateOperation(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
-      integrateOperation(replicaA, performInsert(replicaB, {row: 0, column: 3}, 'b1 '))
-      integrateOperation(replicaB, performInsert(replicaA, {row: 0, column: 6}, 'a2 '))
-      integrateOperation(replicaA, performInsert(replicaB, {row: 0, column: 9}, 'b2'))
+      integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
+      integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 3}, 'b1 '))
+      integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 6}, 'a2 '))
+      integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 9}, 'b2'))
       integrateOperations(replicaA, performSetTextInRange(replicaB, {row: 0, column: 3}, {row: 0, column: 5}, 'b3'))
       assert.equal(replicaA.testDocument.text, 'a1 b3 a2 b2')
       assert.equal(replicaB.testDocument.text, 'a1 b3 a2 b2')
@@ -207,11 +207,11 @@ suite('DocumentReplica', () => {
       const replicaA = buildReplica(1)
       const replicaB = buildReplica(2)
 
-      integrateOperation(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
+      integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
       const checkpoint = replicaA.createCheckpoint()
       integrateOperations(replicaB, performSetTextInRange(replicaA, {row: 0, column: 1}, {row: 0, column: 3}, '2 a3 '))
-      integrateOperation(replicaB, performDelete(replicaA, {row: 0, column: 5}, {row: 0, column: 6}))
-      integrateOperation(replicaA, performInsert(replicaB, {row: 0, column: 0}, 'b1 '))
+      integrateOperations(replicaB, performDelete(replicaA, {row: 0, column: 5}, {row: 0, column: 6}))
+      integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 0}, 'b1 '))
       assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
       assert.equal(replicaB.testDocument.text, 'b1 a2 a3')
 
@@ -250,11 +250,11 @@ suite('DocumentReplica', () => {
       const replicaA = buildReplica(1)
       const replicaB = buildReplica(2)
 
-      integrateOperation(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
+      integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
       const checkpoint = replicaA.createCheckpoint()
       integrateOperations(replicaB, performSetTextInRange(replicaA, {row: 0, column: 1}, {row: 0, column: 3}, '2 a3 '))
-      integrateOperation(replicaB, performDelete(replicaA, {row: 0, column: 5}, {row: 0, column: 6}))
-      integrateOperation(replicaA, performInsert(replicaB, {row: 0, column: 0}, 'b1 '))
+      integrateOperations(replicaB, performDelete(replicaA, {row: 0, column: 5}, {row: 0, column: 6}))
+      integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 0}, 'b1 '))
       assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
       assert.equal(replicaB.testDocument.text, 'b1 a2 a3')
 
@@ -271,11 +271,11 @@ suite('DocumentReplica', () => {
       const replicaA = buildReplica(1)
       const replicaB = buildReplica(2)
 
-      integrateOperation(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
+      integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
       const checkpoint = replicaA.createCheckpoint()
       integrateOperations(replicaB, performSetTextInRange(replicaA, {row: 0, column: 1}, {row: 0, column: 3}, '2 a3 '))
-      integrateOperation(replicaB, performDelete(replicaA, {row: 0, column: 5}, {row: 0, column: 6}))
-      integrateOperation(replicaA, performInsert(replicaB, {row: 0, column: 0}, 'b1 '))
+      integrateOperations(replicaB, performDelete(replicaA, {row: 0, column: 5}, {row: 0, column: 6}))
+      integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 0}, 'b1 '))
       assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
 
       const changesSinceCheckpoint = replicaA.getChangesSinceCheckpoint(checkpoint)
@@ -352,10 +352,10 @@ suite('DocumentReplica', () => {
     test('does not add empty transactions to the undo stack', () => {
       const replicaA = buildReplica(1)
       const replicaB = buildReplica(2)
-      integrateOperation(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a'))
-      integrateOperation(replicaB, performInsert(replicaA, {row: 0, column: 1}, 'b'))
+      integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a'))
+      integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 1}, 'b'))
       const checkpoint = replicaA.createCheckpoint()
-      integrateOperation(replicaA, performInsert(replicaB, {row: 0, column: 2}, 'c'))
+      integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 2}, 'c'))
       replicaA.groupChangesSinceCheckpoint(checkpoint)
       integrateOperations(replicaB, performUndo(replicaA))
 
@@ -399,11 +399,11 @@ suite('DocumentReplica', () => {
     test('local and remote position translation', () => {
       const replica1 = buildReplica(1)
       const replica2 = buildReplica(2)
-      integrateOperation(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
+      integrateOperations(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
 
-      const op1 = performInsert(replica1, {row: 0, column: 6}, '+++')
+      const ops1 = performInsert(replica1, {row: 0, column: 6}, '+++')
       performInsert(replica2, {row: 0, column: 2}, '**')
-      integrateOperation(replica2, op1)
+      integrateOperations(replica2, ops1)
 
       assert.deepEqual(
         replica2.getLocalPositionSync(replica1.getRemotePosition({row: 0, column: 9})),
@@ -415,7 +415,7 @@ suite('DocumentReplica', () => {
       const replica1 = buildReplica(1)
       const replica2 = buildReplica(2)
 
-      const op1 = performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG')
+      const ops1 = performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG')
       const remotePosition = replica1.getRemotePosition({row: 0, column: 4})
       replica2.getLocalPosition(remotePosition).then((localPosition) => {
         assert.deepEqual(localPosition, {row: 0, column: 4})
@@ -423,7 +423,7 @@ suite('DocumentReplica', () => {
       })
 
       // Resolves the promise above
-      integrateOperation(replica2, op1)
+      integrateOperations(replica2, ops1)
     })
   })
 
@@ -530,11 +530,11 @@ function buildReplica (siteId) {
 }
 
 function performInsert (replica, position, text) {
-  return performSetTextInRange(replica, position, ZERO_POINT, text)[0]
+  return performSetTextInRange(replica, position, ZERO_POINT, text)
 }
 
 function performDelete (replica, start, end) {
-  return performSetTextInRange(replica, start, end, null)[0]
+  return performSetTextInRange(replica, start, end, null)
 }
 
 function performSetTextInRange (replica, start, end, text) {
@@ -554,10 +554,10 @@ function performRedo (replica) {
   return operations
 }
 
-function performUndoOrRedoOperation (replica, operationToUndo) {
-  const {textUpdates, operation} = replica.undoOrRedoOperation(operationToUndo)
+function performUndoOrRedoOperations (replica, operationToUndo) {
+  const {textUpdates, operations} = replica.undoOrRedoOperations(operationToUndo)
   replica.testDocument.applyDelta(textUpdates)
-  return operation
+  return operations
 }
 
 function performRevertToCheckpoint (replica, checkpoint, options) {
@@ -567,11 +567,5 @@ function performRevertToCheckpoint (replica, checkpoint, options) {
 }
 
 function integrateOperations (replica, ops) {
-  for (const op of ops) {
-    integrateOperation(replica, op)
-  }
-}
-
-function integrateOperation (replica, op) {
-  replica.testDocument.applyDelta(replica.integrateOperation(op).textUpdates)
+  replica.testDocument.applyDelta(replica.integrateOperations(ops).textUpdates)
 }
