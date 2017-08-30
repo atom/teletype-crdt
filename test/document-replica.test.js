@@ -134,6 +134,124 @@ suite('DocumentReplica', () => {
 
       assert.equal(localReplica.testDocument.text, 'A***BC+++DEFG')
     })
+
+    test('updating marker layers', () => {
+      const replica1 = buildReplica(1)
+      const replica2 = buildReplica(2)
+      integrateOperations(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
+
+      const insert1 = performInsert(replica1, {row: 0, column: 6}, '+++')
+      performInsert(replica2, {row: 0, column: 2}, '**')
+      integrateOperations(replica2, insert1)
+
+      const layerUpdate1 = replica1.updateMarkerLayers({
+        1: { // Create a marker layer with 1 marker
+            1: {
+            range: {
+              start: {row: 0, column: 1},
+              end: {row: 0, column: 9}
+            },
+            exclusive: false,
+            reversed: false,
+            tailed: true
+          }
+        }
+      })
+
+      assert.deepEqual(replica2.integrateOperations(layerUpdate1).markerLayerUpdates, {
+        1: { // Site 1
+          1: { // Marker layer 1
+            1: { // Marker 1
+              range: {
+                end: {row: 0, column: 11},
+                start: {row: 0, column: 1}
+              },
+              exclusive: false,
+              reversed: false,
+              tailed: true
+            }
+          }
+        }
+      })
+
+      const layerUpdate2 = replica1.updateMarkerLayers({
+        1: {
+          1: { // Update marker
+            range: {
+              start: {row: 0, column: 2},
+              end: {row: 0, column: 10}
+            },
+            exclusive: true,
+            reversed: true
+          },
+          2: { // Create marker (with default values for exclusive, reversed, and tailed)
+            range: {
+              start: {row: 0, column: 0},
+              end: {row: 0, column: 1}
+            }
+          }
+        },
+        2: { // Create marker layer with 1 marker
+          1: {
+            range: {
+              start: {row: 0, column: 1},
+              end: {row: 0, column: 2}
+            }
+          }
+        }
+      })
+
+      assert.deepEqual(replica2.integrateOperations(layerUpdate2).markerLayerUpdates, {
+        1: {
+          1: {
+            1: {
+              range: {
+                start: {row: 0, column: 2},
+                end: {row: 0, column: 12}
+              },
+              exclusive: true,
+              reversed: true,
+              tailed: true
+            },
+            2: {
+              range: {
+                start: {row: 0, column: 0},
+                end: {row: 0, column: 1}
+              },
+              exclusive: false,
+              reversed: false,
+              tailed: true
+            }
+          },
+          2: {
+            1: {
+              range: {
+                start: {row: 0, column: 1},
+                end: {row: 0, column: 2}
+              },
+              exclusive: false,
+              reversed: false,
+              tailed: true
+            }
+          }
+        }
+      })
+
+      const layerUpdate3 = replica1.updateMarkerLayers({
+        1: {
+          2: null // Delete marker
+        },
+        2: null // Delete marker layer
+      })
+      assert.deepEqual(replica2.integrateOperations(layerUpdate3).markerLayerUpdates, {
+        1: {
+          1: {
+            2: null
+          },
+          2: null
+        }
+      })
+    })
   })
 
   suite('history', () => {
