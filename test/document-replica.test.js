@@ -246,6 +246,30 @@ suite('DocumentReplica', () => {
       assert.equal(replicaA.groupChangesSinceCheckpoint(checkpoint), false)
     })
 
+    test('does not allow grouping changes past a barrier checkpoint', () => {
+      const replica = buildReplica(1)
+
+      const checkpointBeforeBarrier = replica.createCheckpoint({isBarrier: false})
+      performInsert(replica, {row: 0, column: 0}, 'a')
+      const barrierCheckpoint = replica.createCheckpoint({isBarrier: true})
+      performInsert(replica, {row: 0, column: 1}, 'b')
+      assert.equal(replica.groupChangesSinceCheckpoint(checkpointBeforeBarrier), false)
+
+      performInsert(replica, {row: 0, column: 2}, 'c')
+      const checkpointAfterBarrier = replica.createCheckpoint({isBarrier: false})
+      const changes = replica.groupChangesSinceCheckpoint(barrierCheckpoint)
+      assert.deepEqual(changes, [
+        {
+          oldStart: {row: 0, column: 1},
+          oldEnd: {row: 0, column: 1},
+          oldText: '',
+          newStart: {row: 0, column: 1},
+          newEnd: {row: 0, column: 3},
+          newText: 'bc'
+        }
+      ])
+    })
+
     test('reverting to a checkpoint', () => {
       const replicaA = buildReplica(1)
       const replicaB = buildReplica(2)
