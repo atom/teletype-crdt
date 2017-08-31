@@ -267,6 +267,20 @@ suite('DocumentReplica', () => {
       assert.equal(replicaA.revertToCheckpoint(checkpoint), false)
     })
 
+    test('does not allow reverting past a barrier checkpoint', () => {
+      const replica = buildReplica(1)
+      const checkpointBeforeBarrier = replica.createCheckpoint({isBarrier: false})
+      performInsert(replica, {row: 0, column: 0}, 'a')
+      replica.createCheckpoint({isBarrier: true})
+
+      assert.equal(replica.revertToCheckpoint(checkpointBeforeBarrier), false)
+      assert.equal(replica.getText(), 'a')
+
+      performInsert(replica, {row: 0, column: 1}, 'b')
+      assert.equal(replica.revertToCheckpoint(checkpointBeforeBarrier), false)
+      assert.equal(replica.getText(), 'ab')
+    })
+
     test('getting changes since a checkpoint', () => {
       const replicaA = buildReplica(1)
       const replicaB = buildReplica(2)
