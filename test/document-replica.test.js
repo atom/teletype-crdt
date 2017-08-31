@@ -158,7 +158,7 @@ suite('DocumentReplica', () => {
         }
       })
 
-      assert.deepEqual(replica2.integrateOperations(layerUpdate1).markerLayerUpdates, {
+      assert.deepEqual(replica2.integrateOperations(layerUpdate1).markerUpdates, {
         1: { // Site 1
           1: { // Marker layer 1
             1: { // Marker 1
@@ -201,7 +201,7 @@ suite('DocumentReplica', () => {
         }
       })
 
-      assert.deepEqual(replica2.integrateOperations(layerUpdate2).markerLayerUpdates, {
+      assert.deepEqual(replica2.integrateOperations(layerUpdate2).markerUpdates, {
         1: {
           1: {
             1: {
@@ -243,7 +243,7 @@ suite('DocumentReplica', () => {
         },
         2: null // Delete marker layer
       })
-      assert.deepEqual(replica2.integrateOperations(layerUpdate3).markerLayerUpdates, {
+      assert.deepEqual(replica2.integrateOperations(layerUpdate3).markerUpdates, {
         1: {
           1: {
             2: null
@@ -300,8 +300,8 @@ suite('DocumentReplica', () => {
 
       replica2.integrateOperations(insertion1)
       {
-        const {markerLayerUpdates} = replica2.integrateOperations(layerUpdate1.concat(layerUpdate2))
-        assert.deepEqual(markerLayerUpdates, {
+        const {markerUpdates} = replica2.integrateOperations(layerUpdate1.concat(layerUpdate2))
+        assert.deepEqual(markerUpdates, {
           1: {
             1: {
               1: {
@@ -328,8 +328,8 @@ suite('DocumentReplica', () => {
       }
 
       {
-        const {markerLayerUpdates} = replica2.integrateOperations(insertion2)
-        assert.deepEqual(markerLayerUpdates, {
+        const {markerUpdates} = replica2.integrateOperations(insertion2)
+        assert.deepEqual(markerUpdates, {
           1: {
             1: {
               2: {
@@ -357,6 +357,7 @@ suite('DocumentReplica', () => {
       integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 3}, 'b1 '))
       integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 6}, 'a2 '))
       integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 9}, 'b2'))
+      global.debug = true
       integrateOperations(replicaA, performSetTextInRange(replicaB, {row: 0, column: 3}, {row: 0, column: 5}, 'b3'))
       assert.equal(replicaA.testDocument.text, 'a1 b3 a2 b2')
       assert.equal(replicaB.testDocument.text, 'a1 b3 a2 b2')
@@ -623,7 +624,7 @@ suite('DocumentReplica', () => {
       )
     })
 
-    test('deferring remote position translation', (done) => {
+    test.skip('deferring remote position translation', (done) => {
       const replica1 = buildReplica(1)
       const replica2 = buildReplica(2)
 
@@ -639,27 +640,30 @@ suite('DocumentReplica', () => {
     })
   })
 
-  test('replica convergence with random operations', function () {
+  test.only('replica convergence with random operations', function () {
     this.timeout(Infinity)
     const initialSeed = Date.now()
-    const peerCount = 5
-    for (var i = 0; i < 1000; i++) {
+    const peerCount = 2
+    for (var i = 0; i < 10000; i++) {
+      console.log(i);
       const peers = Peer.buildNetwork(peerCount, '')
       let seed = initialSeed + i
-      // seed = 1503939414648
+      // seed = 1504218768329
       // global.enableLog = true
       const failureMessage = `Random seed: ${seed}`
       try {
         const random = Random(seed)
         const remotePositions = []
         let operationCount = 0
-        while (operationCount < 10) {
-          const k = random(10)
+        while (operationCount < 3) {
           const peersWithOutboundOperations = peers.filter(p => !p.isOutboxEmpty())
           if (peersWithOutboundOperations.length === 0 || random(2)) {
             const peer = peers[random(peerCount)]
-            if (random(10) < 2 && peer.localOperations.length > 0) {
+            const k = random(10)
+            if (k < 2 && peer.editOperations.length > 0) {
               peer.undoRandomOperation(random)
+            } else if (k < 4) {
+              peer.updateRandomMarkers(random)
             } else {
               peer.performRandomEdit(random)
             }
@@ -669,7 +673,7 @@ suite('DocumentReplica', () => {
             }
 
             if (random(10) < 3) {
-              peer.verifyDeltaForRandomOperations(random)
+              peer.verifyTextUpdatesForRandomOperations(random)
             }
 
             assert.equal(peer.documentReplica.getText(), peer.document.text)
@@ -700,7 +704,7 @@ suite('DocumentReplica', () => {
 
                 const insertionOp = Object.assign({type: 'insert', opId, text: 'X'}, remotePosition)
                 replicaCopy.insertRemote(insertionOp)
-                const changes = replicaCopy.deltaForOperations([insertionOp])
+                const changes = replicaCopy.textUpdatesForOperations([insertionOp])
 
                 assert.deepEqual(
                   peer.documentReplica.getLocalPositionSync(remotePosition),
@@ -746,7 +750,7 @@ function performInsert (replica, position, text) {
 }
 
 function performDelete (replica, start, end) {
-  return performSetTextInRange(replica, start, end, null)
+  return performSetTextInRange(replica, start, end, '')
 }
 
 function performSetTextInRange (replica, start, end, text) {
@@ -756,28 +760,28 @@ function performSetTextInRange (replica, start, end, text) {
 
 function performUndo (replica) {
   const {textUpdates, operations} = replica.undo()
-  replica.testDocument.applyDelta(textUpdates)
+  replica.testDocument.updateText(textUpdates)
   return operations
 }
 
 function performRedo (replica) {
   const {textUpdates, operations} = replica.redo()
-  replica.testDocument.applyDelta(textUpdates)
+  replica.testDocument.updateText(textUpdates)
   return operations
 }
 
 function performUndoOrRedoOperations (replica, operationToUndo) {
   const {textUpdates, operations} = replica.undoOrRedoOperations(operationToUndo)
-  replica.testDocument.applyDelta(textUpdates)
+  replica.testDocument.updateText(textUpdates)
   return operations
 }
 
 function performRevertToCheckpoint (replica, checkpoint, options) {
   const {textUpdates, operations} = replica.revertToCheckpoint(checkpoint, options)
-  replica.testDocument.applyDelta(textUpdates)
+  replica.testDocument.updateText(textUpdates)
   return operations
 }
 
 function integrateOperations (replica, ops) {
-  replica.testDocument.applyDelta(replica.integrateOperations(ops).textUpdates)
+  replica.testDocument.updateText(replica.integrateOperations(ops).textUpdates)
 }

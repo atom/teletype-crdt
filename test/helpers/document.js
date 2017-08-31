@@ -1,28 +1,113 @@
 const assert = require('assert')
 const {
-  ZERO_POINT, characterIndexForPosition, extentForText, compare, traverse
+  ZERO_POINT, characterIndexForPosition, extentForText, compare, traverse, traversal
 } = require('../../lib/point-helpers')
 
 module.exports =
 class Document {
   constructor (text) {
     this.text = text
+    this.markersLayersBySiteId = {}
   }
 
-  applyDelta (changes) {
+  updateText (changes) {
     for (let i = changes.length - 1; i >= 0; i--) {
       const {oldStart, oldEnd, newText} = changes[i]
       this.setTextInRange(oldStart, oldEnd, newText)
     }
   }
 
-  setTextInRange (start, end, text) {
-    if (compare(end, start) > 0) {
-      this.delete(start, end)
+  updateMarkers (updatesBySiteId) {
+    for (const siteId in updatesBySiteId) {
+      let layersById = this.markersLayersBySiteId[siteId]
+      if (!layersById) {
+        layersById = {}
+        this.markersLayersBySiteId[siteId] = layersById
+      }
+
+      const updatesByLayerId = updatesBySiteId[siteId]
+      for (const layerId in updatesByLayerId) {
+        const updatesByMarkerId = updatesByLayerId[layerId]
+
+        if (updatesByMarkerId === null) {
+          assert(layersById[layerId], 'Layer should exist')
+          delete layersById[layerId]
+        } else {
+          let markersById = layersById[layerId]
+          if (!markersById) {
+            markersById = {}
+            layersById[layerId] = markersById
+          }
+
+          for (const markerId in updatesByMarkerId) {
+            const markerUpdate = updatesByMarkerId[markerId]
+            if (markerUpdate === null) {
+              assert(markersById[markerId], 'Marker should exist')
+              delete markersById[markerId]
+            } else {
+              markersById[markerId] = markerUpdate
+            }
+          }
+        }
+      }
+    }
+  }
+
+  setTextInRange (oldStart, oldEnd, text) {
+    if (compare(oldEnd, oldStart) > 0) {
+      this.delete(oldStart, oldEnd)
     }
 
-    if (text && text.length > 0) {
-      this.insert(start, text)
+    if (text.length > 0) {
+      this.insert(oldStart, text)
+    }
+
+    this.spliceMarkers(oldStart, oldEnd, traverse(oldStart, extentForText(text)))
+  }
+
+  spliceMarkers (oldStart, oldEnd, newEnd) {
+    const isInsertion = compare(oldStart, oldEnd) === 0
+
+    for (const siteId in this.markersLayersBySiteId) {
+      const layersById = this.markersLayersBySiteId[siteId]
+      for (const layerId in layersById) {
+        const markersById = layersById[layerId]
+        for (const markerId in markersById) {
+          const {range, exclusive} = markersById[markerId]
+          const isEmpty = compare(range.start, range.end) === 0
+
+          const moveMarkerStart = (
+            compare(oldStart, range.start) < 0 ||
+            (
+              exclusive &&
+              (!isEmpty || isInsertion) &&
+              compare(oldStart, range.start) === 0
+            )
+          )
+
+          const moveMarkerEnd = (
+            moveMarkerStart ||
+            (compare(oldStart, range.end) < 0) ||
+            (!exclusive && compare(oldEnd, range.end) === 0)
+          )
+
+          if (moveMarkerStart) {
+            if (compare(oldEnd, range.start) <= 0) { // splice precedes marker start
+              range.start = traverse(newEnd, traversal(range.start, oldEnd))
+            } else { // splice surrounds marker start
+              range.start = newEnd
+            }
+          }
+
+          if (moveMarkerEnd) {
+            if (compare(oldEnd, range.end) <= 0) { // splice precedes marker end
+              range.end = traverse(newEnd, traversal(range.end, oldEnd))
+            } else { // splice surrounds marker end
+              range.end = newEnd
+            }
+          }
+        }
+      }
     }
   }
 

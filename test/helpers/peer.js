@@ -28,9 +28,8 @@ class Peer {
     this.document = new Document(text)
     this.documentReplica = new DocumentReplica(siteId)
     this.deferredOperations = []
-    this.localOperations = []
-    this.allOperations = []
-    this.allNonUndoRedoOperations = []
+    this.editOperations = []
+    this.nonUndoEditOperations = []
   }
 
   connect (peer) {
@@ -38,20 +37,22 @@ class Peer {
   }
 
   send (operation) {
-    operation = serializeOperation(operation)
+    // operation = serializeOperation(operation)
     this.outboxes.forEach((outbox) => outbox.push(operation))
   }
 
   receive (operation) {
-    operation = deserializeOperation(operation)
+    // operation = deserializeOperation(operation)
     this.log('Received', operation)
     const {textUpdates} = this.documentReplica.integrateOperations([operation])
     // this.log('Applying delta', changes)
-    this.document.applyDelta(textUpdates)
+    this.document.updateText(textUpdates)
     this.log('Text', JSON.stringify(this.document.text))
-    this.localOperations.push(operation)
-    this.allOperations.push(operation)
-    if (operation.type !== 'undo') this.allNonUndoRedoOperations.push(operation)
+
+    if (operation.type !== 'marker-layers-update') {
+      this.editOperations.push(operation)
+      if (operation.type !== 'undo') this.nonUndoEditOperations.push(operation)
+    }
   }
 
   isOutboxEmpty () {
@@ -74,37 +75,69 @@ class Peer {
 
     for (const operation of operations) {
       this.send(operation)
-      this.localOperations.push(operation)
-      this.allOperations.push(operation)
-      this.allNonUndoRedoOperations.push(operation)
+      this.editOperations.push(operation)
+      this.nonUndoEditOperations.push(operation)
     }
   }
 
   undoRandomOperation (random) {
-    const opToUndo = this.localOperations[random(this.localOperations.length)]
+    const opToUndo = this.editOperations[random(this.editOperations.length)]
     if (this.documentReplica.hasAppliedOperation(opToUndo.opId)) {
       this.log('Undoing', opToUndo)
       const {operations, textUpdates} = this.documentReplica.undoOrRedoOperations([opToUndo])
       this.log('Applying delta', textUpdates)
-      this.document.applyDelta(textUpdates)
+      this.document.updateText(textUpdates)
       this.log('Text', JSON.stringify(this.document.text))
-      this.allOperations.push(operations[0])
+      this.editOperations.push(operations[0])
       this.send(operations[0])
     }
   }
 
-  verifyDeltaForRandomOperations (random) {
-    const n = random(Math.min(10, this.allNonUndoRedoOperations.length))
+  updateRandomMarkers (random) {
+    const markerUpdates = {}
+    const siteMarkerLayers = this.document.markersLayersBySiteId[this.siteId] || {}
+
+    const n = random.intBetween(1, 5)
+    for (let i = 0; i < n; i++) {
+      const layerId = random(10)
+
+      if (random(10) < 1 && siteMarkerLayers[layerId]) {
+        markerUpdates[layerId] = null
+      } else {
+        if (!markerUpdates[layerId]) markerUpdates[layerId] = {}
+        const layer = siteMarkerLayers[layerId] || {}
+        const markerIds = Object.keys(layer)
+        if (random(10) < 1 && markerIds.length > 0) {
+          const markerId = markerIds[random(markerIds.length)]
+          markerUpdates[layerId][markerId] = null
+        } else {
+          const markerId = random(10)
+          const range = getRandomDocumentRange(random, this.document)
+          const exclusive = Boolean(random(2))
+          markerUpdates[layerId][markerId] = {range, exclusive}
+        }
+      }
+    }
+
+    this.document.updateMarkers({[this.siteId]: markerUpdates})
+    const operations = this.documentReplica.updateMarkerLayers(markerUpdates)
+    for (const operation of operations) {
+      this.send(operation)
+    }
+  }
+
+  verifyTextUpdatesForRandomOperations (random) {
+    const n = random(Math.min(10, this.nonUndoEditOperations.length))
     const operationsSet = new Set()
     for (let i = 0; i < n; i++) {
-      const index = random(this.allNonUndoRedoOperations.length)
-      const operation = this.allNonUndoRedoOperations[index]
+      const index = random(this.nonUndoEditOperations.length)
+      const operation = this.nonUndoEditOperations[index]
       if (this.documentReplica.hasAppliedOperation(operation.opId)) {
         operationsSet.add(operation)
       }
     }
     const operations = Array.from(operationsSet)
-    const delta = this.documentReplica.deltaForOperations(operations)
+    const delta = this.documentReplica.textUpdatesForOperations(operations)
 
     const documentCopy = new Document(this.document.text)
     for (const change of delta.slice().reverse()) {
@@ -134,7 +167,7 @@ class Peer {
 
   copyReplica (siteId) {
     const replica = new DocumentReplica(siteId)
-    replica.integrateOperations(this.allOperations)
+    replica.integrateOperations(this.editOperations)
     return replica
   }
 
