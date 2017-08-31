@@ -260,15 +260,25 @@ suite('DocumentReplica', () => {
       const insertion1 = performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG')
       const insertion2 = performInsert(replica1, {row: 0, column: 4}, 'WXYZ')
 
-      const layerUpdate = replica1.updateMarkerLayers({
+      const layerUpdate1 = replica1.updateMarkerLayers({
         1: {
-          1: { // This only depends on insertion 1
+          // This only depends on insertion 1
+          1: {
             range: {
               start: {row: 0, column: 1},
               end: {row: 0, column: 3}
             }
           },
-          2: { // This depends on insertion 2
+          // This depends on insertion 2
+          2: {
+            range: {
+              start: {row: 0, column: 5},
+              end: {row: 0, column: 7}
+            }
+          },
+          // This depends on insertion 2 but will be overwritten before
+          // insertion 2 arrives at site 2
+          3: {
             range: {
               start: {row: 0, column: 5},
               end: {row: 0, column: 7}
@@ -277,14 +287,33 @@ suite('DocumentReplica', () => {
         }
       })
 
-      replica2.integrateOperations(insertion1)
+      const layerUpdate2 = replica1.updateMarkerLayers({
+        1: {
+          3: {
+            range: {
+              start: {row: 0, column: 1},
+              end: {row: 0, column: 3}
+            }
+          }
+        }
+      })
 
+      replica2.integrateOperations(insertion1)
       {
-        const {markerLayerUpdates} = replica2.integrateOperations(layerUpdate)
+        const {markerLayerUpdates} = replica2.integrateOperations(layerUpdate1.concat(layerUpdate2))
         assert.deepEqual(markerLayerUpdates, {
           1: {
             1: {
               1: {
+                range: {
+                  start: {row: 0, column: 1},
+                  end: {row: 0, column: 3}
+                },
+                exclusive: false,
+                reversed: false,
+                tailed: true
+              },
+              3: {
                 range: {
                   start: {row: 0, column: 1},
                   end: {row: 0, column: 3}
