@@ -83,13 +83,9 @@ class Peer {
 
   undoRandomOperation (random) {
     const opToUndo = this.editOperations[random(this.editOperations.length)]
-    const {deletion, insertion} = opToUndo
-    const hasAppliedOperation = (
-      (!deletion || this.documentReplica.hasAppliedOperation(deletion.opId)) &&
-      (!insertion || this.documentReplica.hasAppliedOperation(insertion.opId))
-    )
+    const {opId} = opToUndo
 
-    if (hasAppliedOperation) {
+    if (this.documentReplica.hasAppliedOperation(opId)) {
       this.log('Undoing', opToUndo)
       const {operations, textUpdates} = this.documentReplica.undoOrRedoOperations([opToUndo])
       this.log('Applying delta', textUpdates)
@@ -142,13 +138,7 @@ class Peer {
     for (let i = 0; i < n; i++) {
       const index = random(this.nonUndoEditOperations.length)
       const operation = this.nonUndoEditOperations[index]
-      const {deletion, insertion} = operation
-      const hasAppliedOperation = (
-        (!deletion || this.documentReplica.hasAppliedOperation(deletion.opId)) &&
-        (!insertion || this.documentReplica.hasAppliedOperation(insertion.opId))
-      )
-
-      if (hasAppliedOperation) operationsSet.add(operation)
+      if (this.documentReplica.hasAppliedOperation(operation)) operationsSet.add(operation)
     }
     const operations = Array.from(operationsSet)
     const delta = this.documentReplica.textUpdatesForOperations(operations)
