@@ -64,7 +64,6 @@ class Peer {
     let operations
     while (true) {
       let {start, end} = getRandomDocumentRange(random, this.document)
-      end = start
       const text = buildRandomLines(random, 1)
       if (compare(end, ZERO_POINT) > 0 || text.length > 0) {
         this.log('setTextInRange', start, end, JSON.stringify(text))
@@ -84,7 +83,13 @@ class Peer {
 
   undoRandomOperation (random) {
     const opToUndo = this.editOperations[random(this.editOperations.length)]
-    if (this.documentReplica.hasAppliedOperation(opToUndo.opId)) {
+    const {deletion, insertion} = opToUndo
+    const hasAppliedOperation = (
+      (!deletion || this.documentReplica.hasAppliedOperation(deletion.opId)) &&
+      (!insertion || this.documentReplica.hasAppliedOperation(insertion.opId))
+    )
+
+    if (hasAppliedOperation) {
       this.log('Undoing', opToUndo)
       const {operations, textUpdates} = this.documentReplica.undoOrRedoOperations([opToUndo])
       this.log('Applying delta', textUpdates)
@@ -137,9 +142,13 @@ class Peer {
     for (let i = 0; i < n; i++) {
       const index = random(this.nonUndoEditOperations.length)
       const operation = this.nonUndoEditOperations[index]
-      if (this.documentReplica.hasAppliedOperation(operation.opId)) {
-        operationsSet.add(operation)
-      }
+      const {deletion, insertion} = operation
+      const hasAppliedOperation = (
+        (!deletion || this.documentReplica.hasAppliedOperation(deletion.opId)) &&
+        (!insertion || this.documentReplica.hasAppliedOperation(insertion.opId))
+      )
+
+      if (hasAppliedOperation) operationsSet.add(operation)
     }
     const operations = Array.from(operationsSet)
     const delta = this.documentReplica.textUpdatesForOperations(operations)
@@ -150,9 +159,14 @@ class Peer {
     }
 
     const replicaCopy = this.copyReplica(this.documentReplica.siteId)
-    replicaCopy.undoOrRedoOperations(operations.filter(operation =>
-      !this.documentReplica.isOperationUndone(operation.opId)
-    ))
+    const notUndoneOperations = operations.filter((operation) => {
+      const {deletion, insertion} = operation
+      return (
+        (!deletion || !this.documentReplica.isOperationUndone(deletion.opId)) &&
+        (!insertion || !this.documentReplica.isOperationUndone(insertion.opId))
+      )
+    })
+    replicaCopy.undoOrRedoOperations(notUndoneOperations)
 
     assert.equal(documentCopy.text, replicaCopy.getText())
   }
