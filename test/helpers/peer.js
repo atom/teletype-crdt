@@ -63,8 +63,9 @@ class Peer {
   performRandomEdit (random) {
     let operations
     while (true) {
-      const {start, end} = getRandomDocumentRange(random, this.document)
-      const text = buildRandomLines(random, 3)
+      let {start, end} = getRandomDocumentRange(random, this.document)
+      end = start
+      const text = buildRandomLines(random, 1)
       if (compare(end, ZERO_POINT) > 0 || text.length > 0) {
         this.log('setTextInRange', start, end, JSON.stringify(text))
         this.document.setTextInRange(start, end, text)
@@ -98,7 +99,7 @@ class Peer {
     const markerUpdates = {}
     const siteMarkerLayers = this.document.markers[this.siteId] || {}
 
-    const n = random.intBetween(1, 2)
+    const n = random.intBetween(1, 1)
     for (let i = 0; i < n; i++) {
       const layerId = random(10)
 

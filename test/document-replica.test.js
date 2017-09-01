@@ -163,8 +163,8 @@ suite('DocumentReplica', () => {
           1: { // Marker layer 1
             1: { // Marker 1
               range: {
-                end: {row: 0, column: 11},
-                start: {row: 0, column: 1}
+                start: {row: 0, column: 1},
+                end: {row: 0, column: 8}
               },
               exclusive: false,
               reversed: false,
@@ -598,7 +598,6 @@ suite('DocumentReplica', () => {
       performInsert(replica, {row: 0, column: 3}, 'd')
       replica.applyGroupingInterval(301)
 
-
       assert.equal(replica.testDocument.text, 'abcd')
       performUndo(replica)
       assert.equal(replica.testDocument.text, 'abc')
@@ -611,17 +610,17 @@ suite('DocumentReplica', () => {
     this.timeout(Infinity)
     const initialSeed = Date.now()
     const peerCount = 2
-    for (var i = 0; i < 10000; i++) {
+    for (var i = 0; i < 50000; i++) {
       console.log(i);
       const peers = Peer.buildNetwork(peerCount, '')
       let seed = initialSeed + i
-      seed = 1504238280778
-      global.enableLog = true
+      // seed = 1504270975436
+      // global.enableLog = true
       const failureMessage = `Random seed: ${seed}`
       try {
         const random = Random(seed)
         let operationCount = 0
-        while (operationCount < 3) {
+        while (operationCount < 4) {
           const peersWithOutboundOperations = peers.filter(p => !p.isOutboxEmpty())
           if (peersWithOutboundOperations.length === 0 || random(2)) {
             const peer = peers[random(peerCount)]
@@ -669,8 +668,6 @@ suite('DocumentReplica', () => {
           const peer = peers[j]
           peer.log(JSON.stringify(peer.document.text), peer.document.markers)
         }
-
-        debugger
 
         for (let j = 0; j < peers.length - 1; j++) {
           assert.deepEqual(peers[j].document.markers, peers[j + 1].document.markers, failureMessage)
