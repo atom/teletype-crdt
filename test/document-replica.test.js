@@ -357,7 +357,6 @@ suite('DocumentReplica', () => {
       integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 3}, 'b1 '))
       integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 6}, 'a2 '))
       integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 9}, 'b2'))
-      global.debug = true
       integrateOperations(replicaA, performSetTextInRange(replicaB, {row: 0, column: 3}, {row: 0, column: 5}, 'b3'))
       assert.equal(replicaA.testDocument.text, 'a1 b3 a2 b2')
       assert.equal(replicaB.testDocument.text, 'a1 b3 a2 b2')
@@ -608,38 +607,6 @@ suite('DocumentReplica', () => {
     })
   })
 
-  suite('positions', () => {
-    test('local and remote position translation', () => {
-      const replica1 = buildReplica(1)
-      const replica2 = buildReplica(2)
-      integrateOperations(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
-
-      const insertion = performInsert(replica1, {row: 0, column: 6}, '+++')
-      performInsert(replica2, {row: 0, column: 2}, '**')
-      integrateOperations(replica2, insertion)
-
-      assert.deepEqual(
-        replica2.getLocalPositionSync(replica1.getRemotePosition({row: 0, column: 9})),
-        {row: 0, column: 11}
-      )
-    })
-
-    test.skip('deferring remote position translation', (done) => {
-      const replica1 = buildReplica(1)
-      const replica2 = buildReplica(2)
-
-      const ops1 = performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG')
-      const remotePosition = replica1.getRemotePosition({row: 0, column: 4})
-      replica2.getLocalPosition(remotePosition).then((localPosition) => {
-        assert.deepEqual(localPosition, {row: 0, column: 4})
-        done()
-      })
-
-      // Resolves the promise above
-      integrateOperations(replica2, ops1)
-    })
-  })
-
   test.only('replica convergence with random operations', function () {
     this.timeout(Infinity)
     const initialSeed = Date.now()
@@ -648,12 +615,11 @@ suite('DocumentReplica', () => {
       console.log(i);
       const peers = Peer.buildNetwork(peerCount, '')
       let seed = initialSeed + i
-      // seed = 1504218768329
-      // global.enableLog = true
+      seed = 1504238280778
+      global.enableLog = true
       const failureMessage = `Random seed: ${seed}`
       try {
         const random = Random(seed)
-        const remotePositions = []
         let operationCount = 0
         while (operationCount < 3) {
           const peersWithOutboundOperations = peers.filter(p => !p.isOutboxEmpty())
@@ -669,10 +635,6 @@ suite('DocumentReplica', () => {
             }
 
             if (random(10) < 3) {
-              remotePositions.push(peer.generateRandomRemotePosition(random))
-            }
-
-            if (random(10) < 3) {
               peer.verifyTextUpdatesForRandomOperations(random)
             }
 
@@ -684,35 +646,6 @@ suite('DocumentReplica', () => {
             peer.deliverRandomOperation(random)
 
             assert.equal(peer.documentReplica.getText(), peer.document.text)
-          }
-
-          for (let j = 0; j < peers.length; j++) {
-            const peer = peers[j]
-            for (var l = 0; l < remotePositions.length; l++) {
-              const remotePosition = remotePositions[l]
-              const canTranslatePosition = (
-                peer.documentReplica.hasAppliedOperation(remotePosition.leftDependencyId) &&
-                peer.documentReplica.hasAppliedOperation(remotePosition.rightDependencyId)
-              )
-              if (canTranslatePosition) {
-                const replicaCopy = peer.copyReplica(remotePosition.site)
-                assert.equal(replicaCopy.getText(), peer.document.text)
-                const opId = {
-                  site: replicaCopy.siteId,
-                  seq: (replicaCopy.maxSeqsBySite[remotePosition.site] || 0) + 1
-                }
-
-                const insertionOp = Object.assign({type: 'insert', opId, text: 'X'}, remotePosition)
-                replicaCopy.insertRemote(insertionOp)
-                const changes = replicaCopy.textUpdatesForOperations([insertionOp])
-
-                assert.deepEqual(
-                  peer.documentReplica.getLocalPositionSync(remotePosition),
-                  changes[0].oldStart,
-                  'Site: ' + peer.siteId + '\n' + failureMessage
-                )
-              }
-            }
           }
         }
 
@@ -730,6 +663,17 @@ suite('DocumentReplica', () => {
 
         for (let j = 0; j < peers.length - 1; j++) {
           assert.equal(peers[j].document.text, peers[j + 1].document.text, failureMessage)
+        }
+
+        for (let j = 0; j < peers.length; j++) {
+          const peer = peers[j]
+          peer.log(JSON.stringify(peer.document.text), peer.document.markers)
+        }
+
+        debugger
+
+        for (let j = 0; j < peers.length - 1; j++) {
+          assert.deepEqual(peers[j].document.markers, peers[j + 1].document.markers, failureMessage)
         }
       } catch (e) {
         console.log(failureMessage);

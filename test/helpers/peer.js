@@ -44,9 +44,10 @@ class Peer {
   receive (operation) {
     // operation = deserializeOperation(operation)
     this.log('Received', operation)
-    const {textUpdates} = this.documentReplica.integrateOperations([operation])
+    const {textUpdates, markerUpdates} = this.documentReplica.integrateOperations([operation])
     // this.log('Applying delta', changes)
     this.document.updateText(textUpdates)
+    this.document.updateMarkers(markerUpdates)
     this.log('Text', JSON.stringify(this.document.text))
 
     if (operation.type !== 'marker-layers-update') {
@@ -95,9 +96,9 @@ class Peer {
 
   updateRandomMarkers (random) {
     const markerUpdates = {}
-    const siteMarkerLayers = this.document.markersLayersBySiteId[this.siteId] || {}
+    const siteMarkerLayers = this.document.markers[this.siteId] || {}
 
-    const n = random.intBetween(1, 5)
+    const n = random.intBetween(1, 2)
     for (let i = 0; i < n; i++) {
       const layerId = random(10)
 
@@ -114,11 +115,14 @@ class Peer {
           const markerId = random(10)
           const range = getRandomDocumentRange(random, this.document)
           const exclusive = Boolean(random(2))
-          markerUpdates[layerId][markerId] = {range, exclusive}
+          const reversed = Boolean(random(2))
+          const tailed = Boolean(random(2))
+          markerUpdates[layerId][markerId] = {range, exclusive, reversed, tailed}
         }
       }
     }
 
+    this.log('Update markers', markerUpdates)
     this.document.updateMarkers({[this.siteId]: markerUpdates})
     const operations = this.documentReplica.updateMarkerLayers(markerUpdates)
     for (const operation of operations) {

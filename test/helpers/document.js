@@ -7,7 +7,7 @@ module.exports =
 class Document {
   constructor (text) {
     this.text = text
-    this.markersLayersBySiteId = {}
+    this.markers = {}
   }
 
   updateText (changes) {
@@ -19,10 +19,10 @@ class Document {
 
   updateMarkers (updatesBySiteId) {
     for (const siteId in updatesBySiteId) {
-      let layersById = this.markersLayersBySiteId[siteId]
+      let layersById = this.markers[siteId]
       if (!layersById) {
         layersById = {}
-        this.markersLayersBySiteId[siteId] = layersById
+        this.markers[siteId] = layersById
       }
 
       const updatesByLayerId = updatesBySiteId[siteId]
@@ -45,7 +45,9 @@ class Document {
               assert(markersById[markerId], 'Marker should exist')
               delete markersById[markerId]
             } else {
-              markersById[markerId] = markerUpdate
+              const marker = Object.assign({}, markerUpdate)
+              marker.range = Object.assign({}, marker.range)
+              markersById[markerId] = marker
             }
           }
         }
@@ -68,19 +70,19 @@ class Document {
   spliceMarkers (oldStart, oldEnd, newEnd) {
     const isInsertion = compare(oldStart, oldEnd) === 0
 
-    for (const siteId in this.markersLayersBySiteId) {
-      const layersById = this.markersLayersBySiteId[siteId]
+    for (const siteId in this.markers) {
+      const layersById = this.markers[siteId]
       for (const layerId in layersById) {
         const markersById = layersById[layerId]
         for (const markerId in markersById) {
           const {range, exclusive} = markersById[markerId]
-          const isEmpty = compare(range.start, range.end) === 0
+          const rangeIsEmpty = compare(range.start, range.end) === 0
 
           const moveMarkerStart = (
             compare(oldStart, range.start) < 0 ||
             (
               exclusive &&
-              (!isEmpty || isInsertion) &&
+              (!rangeIsEmpty || isInsertion) &&
               compare(oldStart, range.start) === 0
             )
           )
