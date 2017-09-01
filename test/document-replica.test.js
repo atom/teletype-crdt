@@ -164,7 +164,7 @@ suite('DocumentReplica', () => {
             1: { // Marker 1
               range: {
                 start: {row: 0, column: 1},
-                end: {row: 0, column: 8}
+                end: {row: 0, column: 11}
               },
               exclusive: false,
               reversed: false,
@@ -206,7 +206,7 @@ suite('DocumentReplica', () => {
           1: {
             1: {
               range: {
-                start: {row: 0, column: 2},
+                start: {row: 0, column: 4},
                 end: {row: 0, column: 12}
               },
               exclusive: true,
@@ -227,7 +227,7 @@ suite('DocumentReplica', () => {
             1: {
               range: {
                 start: {row: 0, column: 1},
-                end: {row: 0, column: 2}
+                end: {row: 0, column: 4}
               },
               exclusive: false,
               reversed: false,
