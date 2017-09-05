@@ -28,9 +28,8 @@ class Peer {
     this.document = new Document(text)
     this.documentReplica = new DocumentReplica(siteId)
     this.deferredOperations = []
-    this.localOperations = []
-    this.allOperations = []
-    this.allNonUndoRedoOperations = []
+    this.editOperations = []
+    this.nonUndoEditOperations = []
   }
 
   connect (peer) {
@@ -45,13 +44,16 @@ class Peer {
   receive (operation) {
     operation = deserializeOperation(operation)
     this.log('Received', operation)
-    const changes = this.documentReplica.integrateOperation(operation)
+    const {textUpdates, markerUpdates} = this.documentReplica.integrateOperations([operation])
     // this.log('Applying delta', changes)
-    this.document.applyDelta(changes)
+    this.document.updateText(textUpdates)
+    this.document.updateMarkers(markerUpdates)
     this.log('Text', JSON.stringify(this.document.text))
-    this.localOperations.push(operation)
-    this.allOperations.push(operation)
-    if (operation.type !== 'undo') this.allNonUndoRedoOperations.push(operation)
+
+    if (operation.type !== 'markers-update') {
+      this.editOperations.push(operation)
+      if (operation.type !== 'undo') this.nonUndoEditOperations.push(operation)
+    }
   }
 
   isOutboxEmpty () {
@@ -61,8 +63,8 @@ class Peer {
   performRandomEdit (random) {
     let operations
     while (true) {
-      const {start, end} = getRandomDocumentRange(random, this.document)
-      const text = buildRandomLines(random, 3)
+      let {start, end} = getRandomDocumentRange(random, this.document)
+      const text = buildRandomLines(random, 1)
       if (compare(end, ZERO_POINT) > 0 || text.length > 0) {
         this.log('setTextInRange', start, end, JSON.stringify(text))
         this.document.setTextInRange(start, end, text)
@@ -74,37 +76,72 @@ class Peer {
 
     for (const operation of operations) {
       this.send(operation)
-      this.localOperations.push(operation)
-      this.allOperations.push(operation)
-      this.allNonUndoRedoOperations.push(operation)
+      this.editOperations.push(operation)
+      this.nonUndoEditOperations.push(operation)
     }
   }
 
   undoRandomOperation (random) {
-    const opToUndo = this.localOperations[random(this.localOperations.length)]
-    if (this.documentReplica.hasAppliedOperation(opToUndo.opId)) {
+    const opToUndo = this.editOperations[random(this.editOperations.length)]
+    const {spliceId} = opToUndo
+
+    if (this.documentReplica.hasAppliedSplice(spliceId)) {
       this.log('Undoing', opToUndo)
-      const {operation, changes} = this.documentReplica.undoOrRedoOperation(opToUndo)
-      this.log('Applying delta', changes)
-      this.document.applyDelta(changes)
+      const {operations, textUpdates} = this.documentReplica.undoOrRedoOperations([opToUndo])
+      this.log('Applying delta', textUpdates)
+      this.document.updateText(textUpdates)
       this.log('Text', JSON.stringify(this.document.text))
-      this.allOperations.push(operation)
+      this.editOperations.push(operations[0])
+      this.send(operations[0])
+    }
+  }
+
+  updateRandomMarkers (random) {
+    const markerUpdates = {}
+    const siteMarkerLayers = this.document.markers[this.siteId] || {}
+
+    const n = random.intBetween(1, 1)
+    for (let i = 0; i < n; i++) {
+      const layerId = random(10)
+
+      if (random(10) < 1 && siteMarkerLayers[layerId]) {
+        markerUpdates[layerId] = null
+      } else {
+        if (!markerUpdates[layerId]) markerUpdates[layerId] = {}
+        const layer = siteMarkerLayers[layerId] || {}
+        const markerIds = Object.keys(layer)
+        if (random(10) < 1 && markerIds.length > 0) {
+          const markerId = markerIds[random(markerIds.length)]
+          markerUpdates[layerId][markerId] = null
+        } else {
+          const markerId = random(10)
+          const range = getRandomDocumentRange(random, this.document)
+          const exclusive = Boolean(random(2))
+          const reversed = Boolean(random(2))
+          const tailed = Boolean(random(2))
+          markerUpdates[layerId][markerId] = {range, exclusive, reversed, tailed}
+        }
+      }
+    }
+
+    this.log('Update markers', markerUpdates)
+    this.document.updateMarkers({[this.siteId]: markerUpdates})
+    const operations = this.documentReplica.updateMarkerLayers(markerUpdates)
+    for (const operation of operations) {
       this.send(operation)
     }
   }
 
-  verifyDeltaForRandomOperations (random) {
-    const n = random(Math.min(10, this.allNonUndoRedoOperations.length))
+  verifyTextUpdatesForRandomOperations (random) {
+    const n = random(Math.min(10, this.nonUndoEditOperations.length))
     const operationsSet = new Set()
     for (let i = 0; i < n; i++) {
-      const index = random(this.allNonUndoRedoOperations.length)
-      const operation = this.allNonUndoRedoOperations[index]
-      if (this.documentReplica.hasAppliedOperation(operation.opId)) {
-        operationsSet.add(operation)
-      }
+      const index = random(this.nonUndoEditOperations.length)
+      const operation = this.nonUndoEditOperations[index]
+      if (this.documentReplica.hasAppliedSplice(operation.spliceId)) operationsSet.add(operation)
     }
     const operations = Array.from(operationsSet)
-    const delta = this.documentReplica.deltaForOperations(operations)
+    const delta = this.documentReplica.textUpdatesForOperations(operations)
 
     const documentCopy = new Document(this.document.text)
     for (const change of delta.slice().reverse()) {
@@ -112,11 +149,10 @@ class Peer {
     }
 
     const replicaCopy = this.copyReplica(this.documentReplica.siteId)
-    for (const operation of operations) {
-      if (!this.documentReplica.isOperationUndone(operation.opId)) {
-        replicaCopy.undoOrRedoOperation(operation)
-      }
-    }
+    const notUndoneOperations = operations.filter((operation) =>
+      !this.documentReplica.isSpliceUndone(operation)
+    )
+    replicaCopy.undoOrRedoOperations(notUndoneOperations)
 
     assert.equal(documentCopy.text, replicaCopy.getText())
   }
@@ -136,9 +172,7 @@ class Peer {
 
   copyReplica (siteId) {
     const replica = new DocumentReplica(siteId)
-    for (let i = 0; i < this.allOperations.length; i++) {
-      replica.integrateOperation(this.allOperations[i])
-    }
+    replica.integrateOperations(this.editOperations)
     return replica
   }
 

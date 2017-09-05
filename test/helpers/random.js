@@ -3,9 +3,17 @@ const {compare, traversal} = require('../../lib/point-helpers')
 
 exports.getRandomDocumentRange = function getRandomDocumentPositionAndExtent (random, document) {
   const endRow = random(document.getLineCount())
-  const startRow = random.intBetween(0, endRow)
-  const startColumn = random(document.lineForRow(startRow).length)
   const endColumn = random(document.lineForRow(endRow).length)
+
+  let startRow, startColumn
+  if (random(10) < 1) {
+    startRow = endRow
+    startColumn = endColumn
+  } else {
+    startRow = random.intBetween(0, endRow)
+    startColumn = random(document.lineForRow(startRow).length)
+  }
+
   let start = {row: startRow, column: startColumn}
   let end = {row: endRow, column: endColumn}
   if (compare(start, end) > 0) {
