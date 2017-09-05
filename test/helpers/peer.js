@@ -37,12 +37,12 @@ class Peer {
   }
 
   send (operation) {
-    // operation = serializeOperation(operation)
+    operation = serializeOperation(operation)
     this.outboxes.forEach((outbox) => outbox.push(operation))
   }
 
   receive (operation) {
-    // operation = deserializeOperation(operation)
+    operation = deserializeOperation(operation)
     this.log('Received', operation)
     const {textUpdates, markerUpdates} = this.documentReplica.integrateOperations([operation])
     // this.log('Applying delta', changes)
@@ -50,7 +50,7 @@ class Peer {
     this.document.updateMarkers(markerUpdates)
     this.log('Text', JSON.stringify(this.document.text))
 
-    if (operation.type !== 'marker-layers-update') {
+    if (operation.type !== 'markers-update') {
       this.editOperations.push(operation)
       if (operation.type !== 'undo') this.nonUndoEditOperations.push(operation)
     }
