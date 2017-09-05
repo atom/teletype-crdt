@@ -656,16 +656,16 @@ suite('DocumentReplica', () => {
         }
 
         for (let j = 0; j < peers.length; j++) {
+          const peer = peers[j]
+          peer.log(JSON.stringify(peer.document.text))
+        }
+
+        for (let j = 0; j < peers.length; j++) {
           assert.equal(peers[j].document.text, peers[j].documentReplica.getText())
         }
 
         for (let j = 0; j < peers.length - 1; j++) {
           assert.equal(peers[j].document.text, peers[j + 1].document.text, failureMessage)
-        }
-
-        for (let j = 0; j < peers.length; j++) {
-          const peer = peers[j]
-          peer.log(JSON.stringify(peer.document.text), peer.document.markers)
         }
 
         // TODO: Get markers to converge. This isn't critical since markers

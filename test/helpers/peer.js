@@ -83,9 +83,9 @@ class Peer {
 
   undoRandomOperation (random) {
     const opToUndo = this.editOperations[random(this.editOperations.length)]
-    const {opId} = opToUndo
+    const {spliceId} = opToUndo
 
-    if (this.documentReplica.hasAppliedOperation(opId)) {
+    if (this.documentReplica.hasAppliedSplice(spliceId)) {
       this.log('Undoing', opToUndo)
       const {operations, textUpdates} = this.documentReplica.undoOrRedoOperations([opToUndo])
       this.log('Applying delta', textUpdates)
@@ -138,7 +138,7 @@ class Peer {
     for (let i = 0; i < n; i++) {
       const index = random(this.nonUndoEditOperations.length)
       const operation = this.nonUndoEditOperations[index]
-      if (this.documentReplica.hasAppliedOperation(operation)) operationsSet.add(operation)
+      if (this.documentReplica.hasAppliedSplice(operation.spliceId)) operationsSet.add(operation)
     }
     const operations = Array.from(operationsSet)
     const delta = this.documentReplica.textUpdatesForOperations(operations)
@@ -149,13 +149,9 @@ class Peer {
     }
 
     const replicaCopy = this.copyReplica(this.documentReplica.siteId)
-    const notUndoneOperations = operations.filter((operation) => {
-      const {deletion, insertion} = operation
-      return (
-        (!deletion || !this.documentReplica.isOperationUndone(deletion.opId)) &&
-        (!insertion || !this.documentReplica.isOperationUndone(insertion.opId))
-      )
-    })
+    const notUndoneOperations = operations.filter((operation) =>
+      !this.documentReplica.isSpliceUndone(operation)
+    )
     replicaCopy.undoOrRedoOperations(notUndoneOperations)
 
     assert.equal(documentCopy.text, replicaCopy.getText())
