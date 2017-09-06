@@ -126,7 +126,7 @@ class Peer {
 
     this.log('Update markers', markerUpdates)
     this.document.updateMarkers({[this.siteId]: markerUpdates})
-    const operations = this.documentReplica.updateMarkerLayers(markerUpdates)
+    const operations = this.documentReplica.updateMarkers(markerUpdates)
     for (const operation of operations) {
       this.send(operation)
     }

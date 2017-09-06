@@ -144,9 +144,9 @@ suite('DocumentReplica', () => {
       performInsert(replica2, {row: 0, column: 2}, '**')
       integrateOperations(replica2, insert1)
 
-      const layerUpdate1 = replica1.updateMarkerLayers({
+      const layerUpdate1 = replica1.updateMarkers({
         1: { // Create a marker layer with 1 marker
-            1: {
+          1: {
             range: {
               start: {row: 0, column: 1},
               end: {row: 0, column: 9}
@@ -174,7 +174,7 @@ suite('DocumentReplica', () => {
         }
       })
 
-      const layerUpdate2 = replica1.updateMarkerLayers({
+      const layerUpdate2 = replica1.updateMarkers({
         1: {
           1: { // Update marker
             range: {
@@ -237,7 +237,7 @@ suite('DocumentReplica', () => {
         }
       })
 
-      const layerUpdate3 = replica1.updateMarkerLayers({
+      const layerUpdate3 = replica1.updateMarkers({
         1: {
           2: null // Delete marker
         },
@@ -260,7 +260,7 @@ suite('DocumentReplica', () => {
       const insertion1 = performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG')
       const insertion2 = performInsert(replica1, {row: 0, column: 4}, 'WXYZ')
 
-      const layerUpdate1 = replica1.updateMarkerLayers({
+      const layerUpdate1 = replica1.updateMarkers({
         1: {
           // This only depends on insertion 1
           1: {
@@ -287,7 +287,7 @@ suite('DocumentReplica', () => {
         }
       })
 
-      const layerUpdate2 = replica1.updateMarkerLayers({
+      const layerUpdate2 = replica1.updateMarkers({
         1: {
           3: {
             range: {
@@ -873,7 +873,7 @@ function performRevertToCheckpoint (replica, checkpoint, options) {
 
 function performUpdateMarkers (replica, markerUpdates) {
   replica.testDocument.updateMarkers({[replica.siteId]: markerUpdates})
-  return replica.updateMarkerLayers(markerUpdates)
+  return replica.updateMarkers(markerUpdates)
 }
 
 function integrateOperations (replica, ops) {
