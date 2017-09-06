@@ -70,6 +70,7 @@ class Document {
   spliceMarkers (oldStart, oldEnd, newEnd) {
     const isInsertion = compare(oldStart, oldEnd) === 0
 
+
     for (const siteId in this.markers) {
       const layersById = this.markers[siteId]
       for (const layerId in layersById) {
