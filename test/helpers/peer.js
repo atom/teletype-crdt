@@ -163,13 +163,6 @@ class Peer {
     peer.receive(operations.shift())
   }
 
-  generateRandomRemotePosition (random) {
-    const {start} = getRandomDocumentRange(random, this.document)
-    const remotePosition = this.history.getRemotePosition(start)
-    this.log('Generating random remote position', start, remotePosition)
-    return remotePosition
-  }
-
   copyReplica (siteId) {
     const replica = new DocumentHistory(siteId)
     replica.integrateOperations(this.editOperations)
