@@ -3,7 +3,7 @@ const {getRandomDocumentRange, buildRandomLines} = require('./random')
 const {ZERO_POINT, compare, traverse, extentForText} = require('../../lib/point-helpers')
 const {serializeOperation, deserializeOperation} = require('../../lib/serialization')
 const Document = require('./document')
-const DocumentReplica = require('../../lib/document-replica')
+const DocumentHistory = require('../../lib/document-history')
 
 module.exports =
 class Peer {
@@ -26,7 +26,7 @@ class Peer {
     this.siteId = siteId
     this.outboxes = new Map()
     this.document = new Document(text)
-    this.documentReplica = new DocumentReplica(siteId)
+    this.history = new DocumentHistory(siteId)
     this.deferredOperations = []
     this.editOperations = []
     this.nonUndoEditOperations = []
@@ -44,7 +44,7 @@ class Peer {
   receive (operation) {
     operation = deserializeOperation(operation)
     this.log('Received', operation)
-    const {textUpdates, markerUpdates} = this.documentReplica.integrateOperations([operation])
+    const {textUpdates, markerUpdates} = this.history.integrateOperations([operation])
     // this.log('Applying delta', changes)
     this.document.updateText(textUpdates)
     this.document.updateMarkers(markerUpdates)
@@ -68,7 +68,7 @@ class Peer {
       if (compare(end, ZERO_POINT) > 0 || text.length > 0) {
         this.log('setTextInRange', start, end, JSON.stringify(text))
         this.document.setTextInRange(start, end, text)
-        operations = this.documentReplica.setTextInRange(start, end, text)
+        operations = this.history.setTextInRange(start, end, text)
         break
       }
     }
@@ -85,9 +85,9 @@ class Peer {
     const opToUndo = this.editOperations[random(this.editOperations.length)]
     const {spliceId} = opToUndo
 
-    if (this.documentReplica.hasAppliedSplice(spliceId)) {
+    if (this.history.hasAppliedSplice(spliceId)) {
       this.log('Undoing', opToUndo)
-      const {operations, textUpdates} = this.documentReplica.undoOrRedoOperations([opToUndo])
+      const {operations, textUpdates} = this.history.undoOrRedoOperations([opToUndo])
       this.log('Applying delta', textUpdates)
       this.document.updateText(textUpdates)
       this.log('Text', JSON.stringify(this.document.text))
@@ -126,7 +126,7 @@ class Peer {
 
     this.log('Update markers', markerUpdates)
     this.document.updateMarkers({[this.siteId]: markerUpdates})
-    const operations = this.documentReplica.updateMarkers(markerUpdates)
+    const operations = this.history.updateMarkers(markerUpdates)
     for (const operation of operations) {
       this.send(operation)
     }
@@ -138,19 +138,19 @@ class Peer {
     for (let i = 0; i < n; i++) {
       const index = random(this.nonUndoEditOperations.length)
       const operation = this.nonUndoEditOperations[index]
-      if (this.documentReplica.hasAppliedSplice(operation.spliceId)) operationsSet.add(operation)
+      if (this.history.hasAppliedSplice(operation.spliceId)) operationsSet.add(operation)
     }
     const operations = Array.from(operationsSet)
-    const delta = this.documentReplica.textUpdatesForOperations(operations)
+    const delta = this.history.textUpdatesForOperations(operations)
 
     const documentCopy = new Document(this.document.text)
     for (const change of delta.slice().reverse()) {
       documentCopy.setTextInRange(change.newStart, change.newEnd, change.oldText)
     }
 
-    const replicaCopy = this.copyReplica(this.documentReplica.siteId)
+    const replicaCopy = this.copyReplica(this.history.siteId)
     const notUndoneOperations = operations.filter((operation) =>
-      !this.documentReplica.isSpliceUndone(operation)
+      !this.history.isSpliceUndone(operation)
     )
     replicaCopy.undoOrRedoOperations(notUndoneOperations)
 
@@ -165,13 +165,13 @@ class Peer {
 
   generateRandomRemotePosition (random) {
     const {start} = getRandomDocumentRange(random, this.document)
-    const remotePosition = this.documentReplica.getRemotePosition(start)
+    const remotePosition = this.history.getRemotePosition(start)
     this.log('Generating random remote position', start, remotePosition)
     return remotePosition
   }
 
   copyReplica (siteId) {
-    const replica = new DocumentReplica(siteId)
+    const replica = new DocumentHistory(siteId)
     replica.integrateOperations(this.editOperations)
     return replica
   }

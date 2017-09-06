@@ -1,11 +1,11 @@
 const assert = require('assert')
 const Random = require('random-seed')
 const Document = require('./helpers/document')
-const DocumentReplica = require('../lib/document-replica')
+const DocumentHistory = require('../lib/document-history')
 const Peer = require('./helpers/peer')
 const {ZERO_POINT} = require('../lib/point-helpers')
 
-suite('DocumentReplica', () => {
+suite('DocumentHistory', () => {
   suite('operations', () => {
     test('concurrent inserts at 0', () => {
       const replica1 = buildReplica(1)
@@ -775,14 +775,14 @@ suite('DocumentReplica', () => {
               peer.verifyTextUpdatesForRandomOperations(random)
             }
 
-            assert.equal(peer.documentReplica.getText(), peer.document.text)
+            assert.equal(peer.history.getText(), peer.document.text)
 
             operationCount++
           } else {
             const peer = peersWithOutboundOperations[random(peersWithOutboundOperations.length)]
             peer.deliverRandomOperation(random)
 
-            assert.equal(peer.documentReplica.getText(), peer.document.text)
+            assert.equal(peer.history.getText(), peer.document.text)
           }
         }
 
@@ -800,7 +800,7 @@ suite('DocumentReplica', () => {
         }
 
         for (let j = 0; j < peers.length; j++) {
-          assert.equal(peers[j].document.text, peers[j].documentReplica.getText())
+          assert.equal(peers[j].document.text, peers[j].history.getText())
         }
 
         for (let j = 0; j < peers.length - 1; j++) {
@@ -823,7 +823,7 @@ suite('DocumentReplica', () => {
 })
 
 function buildReplica (siteId) {
-  const replica = new DocumentReplica(siteId)
+  const replica = new DocumentHistory(siteId)
   replica.testDocument = new Document('')
   return replica
 }
