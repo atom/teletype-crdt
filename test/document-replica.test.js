@@ -454,16 +454,8 @@ suite('DocumentReplica', () => {
           11: {range: buildRange(1, 2), exclusive: false, reversed: false, tailed: true}
         }
       }})
-      assert.equal(replicaB.testDocument.text, 'b1 a2 a3')
-      assert.deepEqual(replicaB.testDocument.markers, {1: {
-        1: {
-          7: {range: buildRange(3, 6), exclusive: true, reversed: false, tailed: true},
-          9: {range: buildRange(0, 1), exclusive: true, reversed: false, tailed: true}
-        },
-        3: {
-          11: {range: buildRange(1, 2), exclusive: false, reversed: false, tailed: true}
-        }
-      }})
+      assert.equal(replicaB.testDocument.text, replicaA.testDocument.text)
+      assert.deepEqual(replicaB.testDocument.markers, replicaA.testDocument.markers)
 
       const changes = replicaA.groupChangesSinceCheckpoint(checkpoint)
       assert.deepEqual(changes, [
@@ -490,16 +482,8 @@ suite('DocumentReplica', () => {
           10: {range: buildRange(4, 5), exclusive: false, reversed: false, tailed: true}
         }
       }})
-      assert.equal(replicaB.testDocument.text, 'b1 a1 ')
-      assert.deepEqual(replicaB.testDocument.markers, {1: {
-        1: {
-          7: {range: buildRange(4, 5), exclusive: false, reversed: true, tailed: true},
-          8: {range: buildRange(3, 4), exclusive: true, reversed: false, tailed: true}
-        },
-        2: {
-          10: {range: buildRange(4, 5), exclusive: false, reversed: false, tailed: true}
-        }
-      }})
+      assert.equal(replicaB.testDocument.text, replicaA.testDocument.text)
+      assert.deepEqual(replicaB.testDocument.markers, replicaA.testDocument.markers)
 
       integrateOperations(replicaB, performRedo(replicaA))
       assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
@@ -512,16 +496,8 @@ suite('DocumentReplica', () => {
           11: {range: buildRange(1, 2), exclusive: false, reversed: false, tailed: true}
         }
       }})
-      assert.equal(replicaB.testDocument.text, 'b1 a2 a3')
-      assert.deepEqual(replicaB.testDocument.markers, {1: {
-        1: {
-          7: {range: buildRange(3, 6), exclusive: true, reversed: false, tailed: true},
-          9: {range: buildRange(0, 1), exclusive: true, reversed: false, tailed: true}
-        },
-        3: {
-          11: {range: buildRange(1, 2), exclusive: false, reversed: false, tailed: true}
-        }
-      }})
+      assert.equal(replicaB.testDocument.text, replicaA.testDocument.text)
+      assert.deepEqual(replicaB.testDocument.markers, replicaA.testDocument.markers)
 
       integrateOperations(replicaB, performUndo(replicaA))
       assert.equal(replicaA.testDocument.text, 'b1 a1 ')
@@ -534,16 +510,8 @@ suite('DocumentReplica', () => {
           10: {range: buildRange(4, 5), exclusive: false, reversed: false, tailed: true}
         }
       }})
-      assert.equal(replicaB.testDocument.text, 'b1 a1 ')
-      assert.deepEqual(replicaB.testDocument.markers, {1: {
-        1: {
-          7: {range: buildRange(4, 5), exclusive: false, reversed: true, tailed: true},
-          8: {range: buildRange(3, 4), exclusive: true, reversed: false, tailed: true}
-        },
-        2: {
-          10: {range: buildRange(4, 5), exclusive: false, reversed: false, tailed: true}
-        }
-      }})
+      assert.equal(replicaB.testDocument.text, replicaA.testDocument.text)
+      assert.deepEqual(replicaB.testDocument.markers, replicaA.testDocument.markers)
 
       // Delete checkpoint
       assert.deepEqual(replicaA.groupChangesSinceCheckpoint(checkpoint, {deleteCheckpoint: true}), [])
