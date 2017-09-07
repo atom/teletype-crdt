@@ -144,7 +144,7 @@ suite('DocumentHistory', () => {
       performInsert(replica2, {row: 0, column: 2}, '**')
       integrateOperations(replica2, insert1)
 
-      const layerUpdate1 = replica1.updateMarkers({
+      integrateOperations(replica2, performUpdateMarkers(replica1, {
         1: { // Create a marker layer with 1 marker
           1: {
             range: {
@@ -156,9 +156,23 @@ suite('DocumentHistory', () => {
             tailed: true
           }
         }
+      }))
+      assert.deepEqual(replica1.getMarkers(), {
+        1: { // Site 1
+          1: { // Marker layer 1
+            1: { // Marker 1
+              range: {
+                start: {row: 0, column: 1},
+                end: {row: 0, column: 9}
+              },
+              exclusive: false,
+              reversed: false,
+              tailed: true
+            }
+          }
+        }
       })
-
-      assert.deepEqual(replica2.integrateOperations(layerUpdate1).markerUpdates, {
+      assert.deepEqual(replica2.getMarkers(), {
         1: { // Site 1
           1: { // Marker layer 1
             1: { // Marker 1
@@ -173,8 +187,9 @@ suite('DocumentHistory', () => {
           }
         }
       })
+      assert.deepEqual(replica2.testDocument.markers, replica2.getMarkers())
 
-      const layerUpdate2 = replica1.updateMarkers({
+      integrateOperations(replica2, performUpdateMarkers(replica1, {
         1: {
           1: { // Update marker
             range: {
@@ -199,9 +214,43 @@ suite('DocumentHistory', () => {
             }
           }
         }
+      }))
+      assert.deepEqual(replica1.getMarkers(), {
+        1: {
+          1: {
+            1: {
+              range: {
+                start: {row: 0, column: 2},
+                end: {row: 0, column: 10}
+              },
+              exclusive: true,
+              reversed: true,
+              tailed: true
+            },
+            2: {
+              range: {
+                start: {row: 0, column: 0},
+                end: {row: 0, column: 1}
+              },
+              exclusive: false,
+              reversed: false,
+              tailed: true
+            }
+          },
+          2: {
+            1: {
+              range: {
+                start: {row: 0, column: 1},
+                end: {row: 0, column: 2}
+              },
+              exclusive: false,
+              reversed: false,
+              tailed: true
+            }
+          }
+        }
       })
-
-      assert.deepEqual(replica2.integrateOperations(layerUpdate2).markerUpdates, {
+      assert.deepEqual(replica2.getMarkers(), {
         1: {
           1: {
             1: {
@@ -236,21 +285,45 @@ suite('DocumentHistory', () => {
           }
         }
       })
+      assert.deepEqual(replica2.testDocument.markers, replica2.getMarkers())
 
-      const layerUpdate3 = replica1.updateMarkers({
+      integrateOperations(replica2, performUpdateMarkers(replica1, {
         1: {
           2: null // Delete marker
         },
         2: null // Delete marker layer
-      })
-      assert.deepEqual(replica2.integrateOperations(layerUpdate3).markerUpdates, {
+      }))
+      assert.deepEqual(replica1.getMarkers(), {
         1: {
           1: {
-            2: null
-          },
-          2: null
+            1: {
+              range: {
+                start: {row: 0, column: 2},
+                end: {row: 0, column: 10}
+              },
+              exclusive: true,
+              reversed: true,
+              tailed: true
+            },
+          }
         }
       })
+      assert.deepEqual(replica2.getMarkers(), {
+        1: {
+          1: {
+            1: {
+              range: {
+                start: {row: 0, column: 4},
+                end: {row: 0, column: 12}
+              },
+              exclusive: true,
+              reversed: true,
+              tailed: true
+            },
+          }
+        }
+      })
+      assert.deepEqual(replica2.testDocument.markers, replica2.getMarkers())
     })
 
     test('deferring marker updates until the dependencies of their logical ranges arrive', () => {
