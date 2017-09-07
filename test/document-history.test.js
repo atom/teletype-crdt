@@ -421,7 +421,7 @@ suite('DocumentHistory', () => {
     })
   })
 
-  suite('history', () => {
+  suite('undo, redo, and checkpoints', () => {
     test('basic undo and redo', () => {
       const replicaA = buildReplica(1)
       const replicaB = buildReplica(2)
