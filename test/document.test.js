@@ -1,28 +1,28 @@
 const assert = require('assert')
 const Random = require('random-seed')
-const Document = require('./helpers/document')
-const DocumentHistory = require('../lib/document-history')
+const LocalDocument = require('./helpers/local-document')
+const Document = require('../lib/document')
 const Peer = require('./helpers/peer')
 const {ZERO_POINT} = require('../lib/point-helpers')
 
-suite('DocumentHistory', () => {
+suite('Document', () => {
   suite('operations', () => {
     test('concurrent inserts at 0', () => {
-      const replica1 = buildReplica(1)
-      const replica2 = buildReplica(2)
+      const replica1 = buildDocument(1)
+      const replica2 = buildDocument(2)
 
       const ops1 = performInsert(replica1, {row: 0, column: 0}, 'a')
       const ops2 = performInsert(replica2, {row: 0, column: 0}, 'b')
       integrateOperations(replica1, ops2)
       integrateOperations(replica2, ops1)
 
-      assert.equal(replica1.testDocument.text, 'ab')
-      assert.equal(replica2.testDocument.text, 'ab')
+      assert.equal(replica1.testLocalDocument.text, 'ab')
+      assert.equal(replica2.testLocalDocument.text, 'ab')
     })
 
     test('concurrent inserts at the same position inside a previous insertion', () => {
-      const replica1 = buildReplica(1)
-      const replica2 = buildReplica(2)
+      const replica1 = buildDocument(1)
+      const replica2 = buildDocument(2)
       integrateOperations(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
 
       const ops1 = performInsert(replica1, {row: 0, column: 2}, '+++')
@@ -30,13 +30,13 @@ suite('DocumentHistory', () => {
       integrateOperations(replica1, ops2)
       integrateOperations(replica2, ops1)
 
-      assert.equal(replica1.testDocument.text, 'AB+++***CDEFG')
-      assert.equal(replica2.testDocument.text, 'AB+++***CDEFG')
+      assert.equal(replica1.testLocalDocument.text, 'AB+++***CDEFG')
+      assert.equal(replica2.testLocalDocument.text, 'AB+++***CDEFG')
     })
 
     test('concurrent inserts at different positions inside a previous insertion', () => {
-      const replica1 = buildReplica(1)
-      const replica2 = buildReplica(2)
+      const replica1 = buildDocument(1)
+      const replica2 = buildDocument(2)
       integrateOperations(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
 
       const ops1 = performInsert(replica1, {row: 0, column: 6}, '+++')
@@ -44,13 +44,13 @@ suite('DocumentHistory', () => {
       integrateOperations(replica1, ops2)
       integrateOperations(replica2, ops1)
 
-      assert.equal(replica1.testDocument.text, 'AB***CDEF+++G')
-      assert.equal(replica2.testDocument.text, 'AB***CDEF+++G')
+      assert.equal(replica1.testLocalDocument.text, 'AB***CDEF+++G')
+      assert.equal(replica2.testLocalDocument.text, 'AB***CDEF+++G')
     })
 
     test('concurrent overlapping deletions', () => {
-      const replica1 = buildReplica(1)
-      const replica2 = buildReplica(2)
+      const replica1 = buildDocument(1)
+      const replica2 = buildDocument(2)
       integrateOperations(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
 
       const ops1 = performDelete(replica1, {row: 0, column: 2}, {row: 0, column: 5})
@@ -58,13 +58,13 @@ suite('DocumentHistory', () => {
       integrateOperations(replica1, ops2)
       integrateOperations(replica2, ops1)
 
-      assert.equal(replica1.testDocument.text, 'ABG')
-      assert.equal(replica2.testDocument.text, 'ABG')
+      assert.equal(replica1.testLocalDocument.text, 'ABG')
+      assert.equal(replica2.testLocalDocument.text, 'ABG')
     })
 
     test('undoing an insertion containing other insertions', () => {
-      const replica1 = buildReplica(1)
-      const replica2 = buildReplica(2)
+      const replica1 = buildDocument(1)
+      const replica2 = buildDocument(2)
 
       const ops1 = performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG')
       integrateOperations(replica2, ops1)
@@ -75,13 +75,13 @@ suite('DocumentHistory', () => {
       const ops1Undo = performUndoOrRedoOperations(replica1, ops1)
       integrateOperations(replica2, ops1Undo)
 
-      assert.equal(replica1.testDocument.text, '***')
-      assert.equal(replica2.testDocument.text, '***')
+      assert.equal(replica1.testLocalDocument.text, '***')
+      assert.equal(replica2.testLocalDocument.text, '***')
     })
 
     test('undoing an insertion containing a deletion', () => {
-      const replica1 = buildReplica(1)
-      const replica2 = buildReplica(2)
+      const replica1 = buildDocument(1)
+      const replica2 = buildDocument(2)
 
       const ops1 = performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG')
       integrateOperations(replica2, ops1)
@@ -92,13 +92,13 @@ suite('DocumentHistory', () => {
       const ops1Undo = performUndoOrRedoOperations(replica1, ops1)
       integrateOperations(replica2, ops1Undo)
 
-      assert.equal(replica1.testDocument.text, '')
-      assert.equal(replica2.testDocument.text, '')
+      assert.equal(replica1.testLocalDocument.text, '')
+      assert.equal(replica2.testLocalDocument.text, '')
     })
 
     test('undoing a deletion that overlaps another concurrent deletion', () => {
-      const replica1 = buildReplica(1)
-      const replica2 = buildReplica(2)
+      const replica1 = buildDocument(1)
+      const replica2 = buildDocument(2)
       integrateOperations(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
 
       const ops1 = performDelete(replica1, {row: 0, column: 1}, {row: 0, column: 4})
@@ -108,12 +108,12 @@ suite('DocumentHistory', () => {
       const ops2Undo = performUndoOrRedoOperations(replica1, ops2)
       integrateOperations(replica2, ops2Undo)
 
-      assert.equal(replica1.testDocument.text, 'AEFG')
-      assert.equal(replica2.testDocument.text, 'AEFG')
+      assert.equal(replica1.testLocalDocument.text, 'AEFG')
+      assert.equal(replica2.testLocalDocument.text, 'AEFG')
     })
 
     test('inserting in the middle of an undone deletion and then redoing the deletion', () => {
-      const replica = buildReplica(1)
+      const replica = buildDocument(1)
 
       performInsert(replica, {row: 0, column: 0}, 'ABCDEFG')
       const deleteOps = performDelete(replica, {row: 0, column: 1}, {row: 0, column: 6})
@@ -121,23 +121,23 @@ suite('DocumentHistory', () => {
       performInsert(replica, {row: 0, column: 3}, '***')
       performUndoOrRedoOperations(replica, deleteOps) // Redo
 
-      assert.equal(replica.testDocument.text, 'A***G')
+      assert.equal(replica.testLocalDocument.text, 'A***G')
     })
 
     test('applying remote operations generated by a copy of the local replica', () => {
-      const localReplica = buildReplica(1)
-      const remoteReplica = buildReplica(1)
+      const localReplica = buildDocument(1)
+      const remoteReplica = buildDocument(1)
 
       integrateOperations(localReplica, performInsert(remoteReplica, {row: 0, column: 0}, 'ABCDEFG'))
       integrateOperations(localReplica, performInsert(remoteReplica, {row: 0, column: 3}, '+++'))
       performInsert(localReplica, {row: 0, column: 1}, '***')
 
-      assert.equal(localReplica.testDocument.text, 'A***BC+++DEFG')
+      assert.equal(localReplica.testLocalDocument.text, 'A***BC+++DEFG')
     })
 
     test('updating marker layers', () => {
-      const replica1 = buildReplica(1)
-      const replica2 = buildReplica(2)
+      const replica1 = buildDocument(1)
+      const replica2 = buildDocument(2)
       integrateOperations(replica2, performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG'))
 
       const insert1 = performInsert(replica1, {row: 0, column: 6}, '+++')
@@ -187,7 +187,7 @@ suite('DocumentHistory', () => {
           }
         }
       })
-      assert.deepEqual(replica2.testDocument.markers, replica2.getMarkers())
+      assert.deepEqual(replica2.testLocalDocument.markers, replica2.getMarkers())
 
       integrateOperations(replica2, performUpdateMarkers(replica1, {
         1: {
@@ -285,7 +285,7 @@ suite('DocumentHistory', () => {
           }
         }
       })
-      assert.deepEqual(replica2.testDocument.markers, replica2.getMarkers())
+      assert.deepEqual(replica2.testLocalDocument.markers, replica2.getMarkers())
 
       integrateOperations(replica2, performUpdateMarkers(replica1, {
         1: {
@@ -323,12 +323,12 @@ suite('DocumentHistory', () => {
           }
         }
       })
-      assert.deepEqual(replica2.testDocument.markers, replica2.getMarkers())
+      assert.deepEqual(replica2.testLocalDocument.markers, replica2.getMarkers())
     })
 
     test('deferring marker updates until the dependencies of their logical ranges arrive', () => {
-      const replica1 = buildReplica(1)
-      const replica2 = buildReplica(2)
+      const replica1 = buildDocument(1)
+      const replica2 = buildDocument(2)
 
       const insertion1 = performInsert(replica1, {row: 0, column: 0}, 'ABCDEFG')
       const insertion2 = performInsert(replica1, {row: 0, column: 4}, 'WXYZ')
@@ -421,52 +421,52 @@ suite('DocumentHistory', () => {
     })
   })
 
-  suite('undo, redo, and checkpoints', () => {
+  suite('linear history methods', () => {
     test('basic undo and redo', () => {
-      const replicaA = buildReplica(1)
-      const replicaB = buildReplica(2)
+      const replicaA = buildDocument(1)
+      const replicaB = buildDocument(2)
 
       integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
       integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 3}, 'b1 '))
       integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 6}, 'a2 '))
       integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 9}, 'b2'))
       integrateOperations(replicaA, performSetTextInRange(replicaB, {row: 0, column: 3}, {row: 0, column: 5}, 'b3'))
-      assert.equal(replicaA.testDocument.text, 'a1 b3 a2 b2')
-      assert.equal(replicaB.testDocument.text, 'a1 b3 a2 b2')
+      assert.equal(replicaA.testLocalDocument.text, 'a1 b3 a2 b2')
+      assert.equal(replicaB.testLocalDocument.text, 'a1 b3 a2 b2')
 
       {
         integrateOperations(replicaA, performUndo(replicaB).operations)
-        assert.equal(replicaA.testDocument.text, 'a1 b1 a2 b2')
-        assert.equal(replicaB.testDocument.text, 'a1 b1 a2 b2')
+        assert.equal(replicaA.testLocalDocument.text, 'a1 b1 a2 b2')
+        assert.equal(replicaB.testLocalDocument.text, 'a1 b1 a2 b2')
       }
 
       {
         integrateOperations(replicaB, performUndo(replicaA).operations)
-        assert.equal(replicaA.testDocument.text, 'a1 b1 b2')
-        assert.equal(replicaB.testDocument.text, 'a1 b1 b2')
+        assert.equal(replicaA.testLocalDocument.text, 'a1 b1 b2')
+        assert.equal(replicaB.testLocalDocument.text, 'a1 b1 b2')
       }
 
       {
         integrateOperations(replicaB, performRedo(replicaA).operations)
-        assert.equal(replicaA.testDocument.text, 'a1 b1 a2 b2')
-        assert.equal(replicaB.testDocument.text, 'a1 b1 a2 b2')
+        assert.equal(replicaA.testLocalDocument.text, 'a1 b1 a2 b2')
+        assert.equal(replicaB.testLocalDocument.text, 'a1 b1 a2 b2')
       }
 
       {
         integrateOperations(replicaA, performRedo(replicaB).operations)
-        assert.equal(replicaA.testDocument.text, 'a1 b3 a2 b2')
-        assert.equal(replicaB.testDocument.text, 'a1 b3 a2 b2')
+        assert.equal(replicaA.testLocalDocument.text, 'a1 b3 a2 b2')
+        assert.equal(replicaB.testLocalDocument.text, 'a1 b3 a2 b2')
       }
 
       {
         integrateOperations(replicaA, performUndo(replicaB).operations)
-        assert.equal(replicaA.testDocument.text, 'a1 b1 a2 b2')
-        assert.equal(replicaB.testDocument.text, 'a1 b1 a2 b2')
+        assert.equal(replicaA.testLocalDocument.text, 'a1 b1 a2 b2')
+        assert.equal(replicaB.testLocalDocument.text, 'a1 b1 a2 b2')
       }
     })
 
     test('clearing undo and redo stacks', () => {
-      const replica = buildReplica(1)
+      const replica = buildDocument(1)
       performInsert(replica, {row: 0, column: 0}, 'a')
       replica.clearUndoStack()
       performInsert(replica, {row: 0, column: 1}, 'b')
@@ -489,8 +489,8 @@ suite('DocumentHistory', () => {
     })
 
     test('grouping changes since a checkpoint', () => {
-      const replicaA = buildReplica(1)
-      const replicaB = buildReplica(2)
+      const replicaA = buildDocument(1)
+      const replicaB = buildDocument(2)
 
       integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
       const checkpoint = replicaA.createCheckpoint({markers: {
@@ -504,9 +504,9 @@ suite('DocumentHistory', () => {
       integrateOperations(replicaB, performSetTextInRange(replicaA, {row: 0, column: 1}, {row: 0, column: 3}, '2 a3 '))
       integrateOperations(replicaB, performDelete(replicaA, {row: 0, column: 5}, {row: 0, column: 6}))
       integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 0}, 'b1 '))
-      assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
-      assert.equal(replicaB.testDocument.text, replicaA.testDocument.text)
-      assert.deepEqual(replicaB.testDocument.markers, replicaA.testDocument.markers)
+      assert.equal(replicaA.testLocalDocument.text, 'b1 a2 a3')
+      assert.equal(replicaB.testLocalDocument.text, replicaA.testLocalDocument.text)
+      assert.deepEqual(replicaB.testLocalDocument.markers, replicaA.testLocalDocument.markers)
 
       const changes = replicaA.groupChangesSinceCheckpoint(checkpoint, {
         markers: {
@@ -526,14 +526,14 @@ suite('DocumentHistory', () => {
           newText: "2 a3"
         }
       ])
-      assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
-      assert.equal(replicaB.testDocument.text, 'b1 a2 a3')
+      assert.equal(replicaA.testLocalDocument.text, 'b1 a2 a3')
+      assert.equal(replicaB.testLocalDocument.text, 'b1 a2 a3')
 
       {
         const {operations, markers} = performUndo(replicaA)
         integrateOperations(replicaB, operations)
-        assert.equal(replicaA.testDocument.text, 'b1 a1 ')
-        assert.equal(replicaB.testDocument.text, replicaA.testDocument.text)
+        assert.equal(replicaA.testLocalDocument.text, 'b1 a1 ')
+        assert.equal(replicaB.testLocalDocument.text, replicaA.testLocalDocument.text)
         assert.deepEqual(markers, {
           1: {
             1: {range: buildRange(3, 4), exclusive: true, a: 1},
@@ -547,8 +547,8 @@ suite('DocumentHistory', () => {
       {
         const {operations, markers} = performRedo(replicaA)
         integrateOperations(replicaB, operations)
-        assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
-        assert.equal(replicaB.testDocument.text, replicaA.testDocument.text)
+        assert.equal(replicaA.testLocalDocument.text, 'b1 a2 a3')
+        assert.equal(replicaB.testLocalDocument.text, replicaA.testLocalDocument.text)
         assert.deepEqual(markers, {
           1: {
             1: {range: buildRange(3, 5), c: 3},
@@ -561,8 +561,8 @@ suite('DocumentHistory', () => {
       {
         const {operations, markers} = performUndo(replicaA)
         integrateOperations(replicaB, operations)
-        assert.equal(replicaA.testDocument.text, 'a1 ')
-        assert.equal(replicaB.testDocument.text, replicaA.testDocument.text)
+        assert.equal(replicaA.testLocalDocument.text, 'a1 ')
+        assert.equal(replicaB.testLocalDocument.text, replicaA.testLocalDocument.text)
         assert.deepEqual(markers, {
           1: {
             1: {range: buildRange(0, 1), exclusive: true, a: 1},
@@ -579,7 +579,7 @@ suite('DocumentHistory', () => {
     })
 
     test('does not allow grouping changes past a barrier checkpoint', () => {
-      const replica = buildReplica(1)
+      const replica = buildDocument(1)
 
       const checkpointBeforeBarrier = replica.createCheckpoint({isBarrier: false})
       performInsert(replica, {row: 0, column: 0}, 'a')
@@ -603,8 +603,8 @@ suite('DocumentHistory', () => {
     })
 
     test('reverting to a checkpoint', () => {
-      const replicaA = buildReplica(1)
-      const replicaB = buildReplica(2)
+      const replicaA = buildDocument(1)
+      const replicaB = buildDocument(2)
 
       integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
       const checkpoint = replicaA.createCheckpoint({markers: {
@@ -619,13 +619,13 @@ suite('DocumentHistory', () => {
       integrateOperations(replicaB, performDelete(replicaA, {row: 0, column: 5}, {row: 0, column: 6}))
       integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 0}, 'b1 '))
 
-      assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
-      assert.equal(replicaB.testDocument.text, replicaA.testDocument.text)
+      assert.equal(replicaA.testLocalDocument.text, 'b1 a2 a3')
+      assert.equal(replicaB.testLocalDocument.text, replicaA.testLocalDocument.text)
 
       const {operations, markers} = performRevertToCheckpoint(replicaA, checkpoint)
       integrateOperations(replicaB, operations)
-      assert.equal(replicaA.testDocument.text, 'b1 a1 ')
-      assert.equal(replicaB.testDocument.text, replicaA.testDocument.text)
+      assert.equal(replicaA.testLocalDocument.text, 'b1 a1 ')
+      assert.equal(replicaB.testLocalDocument.text, replicaA.testLocalDocument.text)
       assert.deepEqual(markers, {
         1: {
           1: {range: buildRange(3, 4), exclusive: true, a: 1},
@@ -641,7 +641,7 @@ suite('DocumentHistory', () => {
     })
 
     test('does not allow reverting past a barrier checkpoint', () => {
-      const replica = buildReplica(1)
+      const replica = buildDocument(1)
       const checkpointBeforeBarrier = replica.createCheckpoint({isBarrier: false})
       performInsert(replica, {row: 0, column: 0}, 'a')
       replica.createCheckpoint({isBarrier: true})
@@ -655,25 +655,25 @@ suite('DocumentHistory', () => {
     })
 
     test('getting changes since a checkpoint', () => {
-      const replicaA = buildReplica(1)
-      const replicaB = buildReplica(2)
+      const replicaA = buildDocument(1)
+      const replicaB = buildDocument(2)
 
       integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a1 '))
       const checkpoint = replicaA.createCheckpoint()
       integrateOperations(replicaB, performSetTextInRange(replicaA, {row: 0, column: 1}, {row: 0, column: 3}, '2 a3 '))
       integrateOperations(replicaB, performDelete(replicaA, {row: 0, column: 5}, {row: 0, column: 6}))
       integrateOperations(replicaA, performInsert(replicaB, {row: 0, column: 0}, 'b1 '))
-      assert.equal(replicaA.testDocument.text, 'b1 a2 a3')
+      assert.equal(replicaA.testLocalDocument.text, 'b1 a2 a3')
 
       const changesSinceCheckpoint = replicaA.getChangesSinceCheckpoint(checkpoint)
       for (const change of changesSinceCheckpoint.reverse()) {
-        replicaA.testDocument.setTextInRange(change.newStart, change.newEnd, change.oldText)
+        replicaA.testLocalDocument.setTextInRange(change.newStart, change.newEnd, change.oldText)
       }
-      assert.equal(replicaA.testDocument.text, 'b1 a1 ')
+      assert.equal(replicaA.testLocalDocument.text, 'b1 a1 ')
     })
 
     test('undoing and redoing an operation that occurred adjacent to a checkpoint', () => {
-      const replica = buildReplica(1)
+      const replica = buildDocument(1)
       performInsert(replica, {row: 0, column: 0}, 'a')
       performInsert(replica, {row: 0, column: 1}, 'b')
       replica.createCheckpoint()
@@ -690,7 +690,7 @@ suite('DocumentHistory', () => {
     })
 
     test('reverting to a checkpoint after undoing and redoing an operation', () => {
-      const replica = buildReplica(1)
+      const replica = buildDocument(1)
 
       performInsert(replica, {row: 0, column: 0}, 'a')
       const checkpoint1 = replica.createCheckpoint()
@@ -712,7 +712,7 @@ suite('DocumentHistory', () => {
     })
 
     test('undoing preserves checkpoint created prior to any operations', () => {
-      const replica = buildReplica(1)
+      const replica = buildDocument(1)
       const checkpoint = replica.createCheckpoint()
       replica.undo()
       performInsert(replica, {row: 0, column: 0}, 'a')
@@ -722,7 +722,7 @@ suite('DocumentHistory', () => {
     })
 
     test('does not allow undoing past a barrier checkpoint', () => {
-      const replica = buildReplica(1)
+      const replica = buildDocument(1)
       performInsert(replica, {row: 0, column: 0}, 'a')
       performInsert(replica, {row: 0, column: 1}, 'b')
       replica.createCheckpoint({isBarrier: true})
@@ -737,8 +737,8 @@ suite('DocumentHistory', () => {
     })
 
     test('does not add empty transactions to the undo stack', () => {
-      const replicaA = buildReplica(1)
-      const replicaB = buildReplica(2)
+      const replicaA = buildDocument(1)
+      const replicaB = buildDocument(2)
       integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 0}, 'a'))
       integrateOperations(replicaB, performInsert(replicaA, {row: 0, column: 1}, 'b'))
       const checkpoint = replicaA.createCheckpoint()
@@ -746,12 +746,12 @@ suite('DocumentHistory', () => {
       replicaA.groupChangesSinceCheckpoint(checkpoint)
       integrateOperations(replicaB, performUndo(replicaA).operations)
 
-      assert.equal(replicaA.testDocument.text, 'ac')
-      assert.equal(replicaB.testDocument.text, 'ac')
+      assert.equal(replicaA.testLocalDocument.text, 'ac')
+      assert.equal(replicaB.testLocalDocument.text, 'ac')
     })
 
     test('applying a grouping interval', () => {
-      const replica = buildReplica(1)
+      const replica = buildDocument(1)
       replica.getNow = () => now
 
       let now = 0
@@ -773,11 +773,11 @@ suite('DocumentHistory', () => {
       performInsert(replica, {row: 0, column: 3}, 'd')
       replica.applyGroupingInterval(301)
 
-      assert.equal(replica.testDocument.text, 'abcd')
+      assert.equal(replica.testLocalDocument.text, 'abcd')
       performUndo(replica)
-      assert.equal(replica.testDocument.text, 'abc')
+      assert.equal(replica.testLocalDocument.text, 'abc')
       performUndo(replica)
-      assert.equal(replica.testDocument.text, '')
+      assert.equal(replica.testLocalDocument.text, '')
     })
   })
 
@@ -811,14 +811,14 @@ suite('DocumentHistory', () => {
               peer.verifyTextUpdatesForRandomOperations(random)
             }
 
-            assert.equal(peer.history.getText(), peer.document.text)
+            assert.equal(peer.history.getText(), peer.localDocument.text)
 
             operationCount++
           } else {
             const peer = peersWithOutboundOperations[random(peersWithOutboundOperations.length)]
             peer.deliverRandomOperation(random)
 
-            assert.equal(peer.history.getText(), peer.document.text)
+            assert.equal(peer.history.getText(), peer.localDocument.text)
           }
         }
 
@@ -832,15 +832,15 @@ suite('DocumentHistory', () => {
 
         for (let j = 0; j < peers.length; j++) {
           const peer = peers[j]
-          peer.log(JSON.stringify(peer.document.text))
+          peer.log(JSON.stringify(peer.localDocument.text))
         }
 
         for (let j = 0; j < peers.length; j++) {
-          assert.equal(peers[j].document.text, peers[j].history.getText())
+          assert.equal(peers[j].localDocument.text, peers[j].history.getText())
         }
 
         for (let j = 0; j < peers.length - 1; j++) {
-          assert.equal(peers[j].document.text, peers[j + 1].document.text, failureMessage)
+          assert.equal(peers[j].localDocument.text, peers[j + 1].localDocument.text, failureMessage)
         }
 
         // TODO: Get markers to converge. This isn't critical since markers
@@ -848,7 +848,7 @@ suite('DocumentHistory', () => {
         // won't be fatal.
         //
         // for (let j = 0; j < peers.length - 1; j++) {
-        //   assert.deepEqual(peers[j].document.markers, peers[j + 1].document.markers, failureMessage)
+        //   assert.deepEqual(peers[j].localDocument.markers, peers[j + 1].localDocument.markers, failureMessage)
         // }
       } catch (e) {
         console.log(failureMessage);
@@ -858,9 +858,9 @@ suite('DocumentHistory', () => {
   })
 })
 
-function buildReplica (siteId) {
-  const replica = new DocumentHistory(siteId)
-  replica.testDocument = new Document('')
+function buildDocument (siteId) {
+  const replica = new Document(siteId)
+  replica.testLocalDocument = new LocalDocument('')
   return replica
 }
 
@@ -873,43 +873,43 @@ function performDelete (replica, start, end) {
 }
 
 function performSetTextInRange (replica, start, end, text) {
-  replica.testDocument.setTextInRange(start, end, text)
+  replica.testLocalDocument.setTextInRange(start, end, text)
   return replica.setTextInRange(start, end, text)
 }
 
 function performUndo (replica) {
   const {operations, textUpdates, markers} = replica.undo()
-  replica.testDocument.updateText(textUpdates)
+  replica.testLocalDocument.updateText(textUpdates)
   return {operations, markers}
 }
 
 function performRedo (replica) {
   const {operations, textUpdates, markers} = replica.redo()
-  replica.testDocument.updateText(textUpdates)
+  replica.testLocalDocument.updateText(textUpdates)
   return {operations, markers}
 }
 
 function performUndoOrRedoOperations (replica, operationToUndo) {
   const {operations, textUpdates} = replica.undoOrRedoOperations(operationToUndo)
-  replica.testDocument.updateText(textUpdates)
+  replica.testLocalDocument.updateText(textUpdates)
   return operations
 }
 
 function performRevertToCheckpoint (replica, checkpoint, options) {
   const {operations, textUpdates, markers} = replica.revertToCheckpoint(checkpoint, options)
-  replica.testDocument.updateText(textUpdates)
+  replica.testLocalDocument.updateText(textUpdates)
   return {operations, markers}
 }
 
 function performUpdateMarkers (replica, markerUpdates) {
-  replica.testDocument.updateMarkers({[replica.siteId]: markerUpdates})
+  replica.testLocalDocument.updateMarkers({[replica.siteId]: markerUpdates})
   return replica.updateMarkers(markerUpdates)
 }
 
 function integrateOperations (replica, ops) {
   const {textUpdates, markerUpdates} = replica.integrateOperations(ops)
-  replica.testDocument.updateText(textUpdates)
-  replica.testDocument.updateMarkers(markerUpdates)
+  replica.testLocalDocument.updateText(textUpdates)
+  replica.testLocalDocument.updateMarkers(markerUpdates)
 }
 
 function buildRange (startColumn, endColumn) {

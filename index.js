@@ -1,11 +1,11 @@
-const DocumentHistory = require('./lib/document-history')
+const Document = require('./lib/document')
 const {
   serializeOperation, deserializeOperation,
   serializeRemotePosition, deserializeRemotePosition
 } = require('./lib/serialization')
 
 module.exports = {
-  DocumentHistory,
+  Document,
   serializeOperation, deserializeOperation,
   serializeRemotePosition, deserializeRemotePosition
 }

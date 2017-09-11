@@ -4,7 +4,7 @@ const {
 } = require('../../lib/point-helpers')
 
 module.exports =
-class Document {
+class LocalDocument {
   constructor (text) {
     this.text = text
     this.markers = {}

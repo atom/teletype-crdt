@@ -2,8 +2,8 @@ const assert = require('assert')
 const {getRandomDocumentRange, buildRandomLines} = require('./random')
 const {ZERO_POINT, compare, traverse, extentForText} = require('../../lib/point-helpers')
 const {serializeOperation, deserializeOperation} = require('../../lib/serialization')
-const Document = require('./document')
-const DocumentHistory = require('../../lib/document-history')
+const LocalDocument = require('./local-document')
+const Document = require('../../lib/document')
 
 module.exports =
 class Peer {
@@ -25,8 +25,8 @@ class Peer {
   constructor (siteId, text) {
     this.siteId = siteId
     this.outboxes = new Map()
-    this.document = new Document(text)
-    this.history = new DocumentHistory(siteId)
+    this.localDocument = new LocalDocument(text)
+    this.history = new Document(siteId)
     this.deferredOperations = []
     this.editOperations = []
     this.nonUndoEditOperations = []
@@ -46,9 +46,9 @@ class Peer {
     this.log('Received', operation)
     const {textUpdates, markerUpdates} = this.history.integrateOperations([operation])
     // this.log('Applying delta', changes)
-    this.document.updateText(textUpdates)
-    this.document.updateMarkers(markerUpdates)
-    this.log('Text', JSON.stringify(this.document.text))
+    this.localDocument.updateText(textUpdates)
+    this.localDocument.updateMarkers(markerUpdates)
+    this.log('Text', JSON.stringify(this.localDocument.text))
 
     if (operation.type !== 'markers-update') {
       this.editOperations.push(operation)
@@ -63,16 +63,16 @@ class Peer {
   performRandomEdit (random) {
     let operations
     while (true) {
-      let {start, end} = getRandomDocumentRange(random, this.document)
+      let {start, end} = getRandomDocumentRange(random, this.localDocument)
       const text = buildRandomLines(random, 1)
       if (compare(end, ZERO_POINT) > 0 || text.length > 0) {
         this.log('setTextInRange', start, end, JSON.stringify(text))
-        this.document.setTextInRange(start, end, text)
+        this.localDocument.setTextInRange(start, end, text)
         operations = this.history.setTextInRange(start, end, text)
         break
       }
     }
-    this.log('Text', JSON.stringify(this.document.text))
+    this.log('Text', JSON.stringify(this.localDocument.text))
 
     for (const operation of operations) {
       this.send(operation)
@@ -89,8 +89,8 @@ class Peer {
       this.log('Undoing', opToUndo)
       const {operations, textUpdates} = this.history.undoOrRedoOperations([opToUndo])
       this.log('Applying delta', textUpdates)
-      this.document.updateText(textUpdates)
-      this.log('Text', JSON.stringify(this.document.text))
+      this.localDocument.updateText(textUpdates)
+      this.log('Text', JSON.stringify(this.localDocument.text))
       this.editOperations.push(operations[0])
       this.send(operations[0])
     }
@@ -98,7 +98,7 @@ class Peer {
 
   updateRandomMarkers (random) {
     const markerUpdates = {}
-    const siteMarkerLayers = this.document.markers[this.siteId] || {}
+    const siteMarkerLayers = this.localDocument.markers[this.siteId] || {}
 
     const n = random.intBetween(1, 1)
     for (let i = 0; i < n; i++) {
@@ -115,7 +115,7 @@ class Peer {
           markerUpdates[layerId][markerId] = null
         } else {
           const markerId = random(10)
-          const range = getRandomDocumentRange(random, this.document)
+          const range = getRandomDocumentRange(random, this.localDocument)
           const exclusive = Boolean(random(2))
           const reversed = Boolean(random(2))
           const tailed = Boolean(random(2))
@@ -125,7 +125,7 @@ class Peer {
     }
 
     this.log('Update markers', markerUpdates)
-    this.document.updateMarkers({[this.siteId]: markerUpdates})
+    this.localDocument.updateMarkers({[this.siteId]: markerUpdates})
     const operations = this.history.updateMarkers(markerUpdates)
     for (const operation of operations) {
       this.send(operation)
@@ -143,7 +143,7 @@ class Peer {
     const operations = Array.from(operationsSet)
     const delta = this.history.textUpdatesForOperations(operations)
 
-    const documentCopy = new Document(this.document.text)
+    const documentCopy = new LocalDocument(this.localDocument.text)
     for (const change of delta.slice().reverse()) {
       documentCopy.setTextInRange(change.newStart, change.newEnd, change.oldText)
     }
@@ -164,7 +164,7 @@ class Peer {
   }
 
   copyReplica (siteId) {
-    const replica = new DocumentHistory(siteId)
+    const replica = new Document(siteId)
     replica.integrateOperations(this.editOperations)
     return replica
   }
