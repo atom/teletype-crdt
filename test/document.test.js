@@ -415,7 +415,7 @@ suite('Document', () => {
     })
   })
 
-  suite('linear history methods', () => {
+  suite('history', () => {
     test('basic undo and redo', () => {
       const replicaA = buildDocument(1)
       const replicaB = replicateDocument(2, replicaA)
