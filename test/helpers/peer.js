@@ -26,7 +26,7 @@ class Peer {
     this.siteId = siteId
     this.outboxes = new Map()
     this.localDocument = new LocalDocument(text)
-    this.history = new Document(siteId)
+    this.history = new Document({siteId})
     this.deferredOperations = []
     this.editOperations = []
     this.nonUndoEditOperations = []
@@ -148,7 +148,7 @@ class Peer {
       documentCopy.setTextInRange(change.newStart, change.newEnd, change.oldText)
     }
 
-    const replicaCopy = this.copyReplica(this.history.siteId)
+    const replicaCopy = this.history.replicate(this.history.siteId)
     const notUndoneOperations = operations.filter((operation) =>
       !this.history.isSpliceUndone(operation)
     )
@@ -161,12 +161,6 @@ class Peer {
     const outboxes = Array.from(this.outboxes).filter(([peer, operations]) => operations.length > 0)
     const [peer, operations] = outboxes[random(outboxes.length)]
     peer.receive(operations.shift())
-  }
-
-  copyReplica (siteId) {
-    const replica = new Document(siteId)
-    replica.integrateOperations(this.editOperations)
-    return replica
   }
 
   log (...message) {
