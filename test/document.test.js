@@ -459,6 +459,15 @@ suite('Document', () => {
       }
     })
 
+    test('does not allow the initial text to be undone', () => {
+      const document = buildDocument(1, 'hello')
+      performInsert(document, {row: 0, column: 5}, ' world')
+      assert.notEqual(document.undo(), null)
+      assert.equal(document.getText(), 'hello')
+      assert.equal(document.undo(), null)
+      assert.equal(document.getText(), 'hello')
+    })
+
     test('skipping insertions on the undo stack', () => {
       const replicaA = buildDocument(1)
       const replicaB = replicateDocument(2, replicaA)
