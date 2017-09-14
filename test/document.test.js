@@ -468,17 +468,6 @@ suite('Document', () => {
       assert.equal(document.getText(), 'hello')
     })
 
-    test('skipping insertions on the undo stack', () => {
-      const replicaA = buildDocument(1)
-      const replicaB = replicateDocument(2, replicaA)
-
-      integrateOperations(replicaB, performSetTextInRange(replicaA, ZERO_POINT, ZERO_POINT, 'abcdefg', {pushToHistory: false}))
-      assert.equal(replicaA.testLocalDocument.text, 'abcdefg')
-      assert.equal(replicaB.testLocalDocument.text, 'abcdefg')
-      assert(!replicaA.undo())
-      assert(!replicaB.undo())
-    })
-
     test('clearing undo and redo stacks', () => {
       const document = buildDocument(1)
       performInsert(document, {row: 0, column: 0}, 'a')
