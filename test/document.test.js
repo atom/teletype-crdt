@@ -468,6 +468,115 @@ suite('Document', () => {
       assert.equal(document.getText(), 'hello')
     })
 
+    test('constructing the document with an initial history state', () => {
+      const document = new Document({
+        siteId: 1,
+        history: {
+          nextCheckpointId: 4,
+          baseText: 'a ',
+          undoStack: [
+            {
+              type: 'transaction',
+              changes: [
+                {oldStart: point(0, 2), oldEnd: point(0, 2), newStart: point(0, 2), newEnd: point(0, 4), oldText: '', newText: 'b '}
+              ],
+              markersBefore: {1: {1: {range: range(point(0, 0), point(0, 2))}}},
+              markersAfter: {1: {1: {range: range(point(0, 2), point(0, 4))}}}
+            },
+            {
+              type: 'checkpoint',
+              id: 2,
+              markers: {1: {1: {range: range(point(0, 2), point(0, 4))}}}
+            },
+            {
+              type: 'transaction',
+              changes: [
+                {oldStart: point(0, 4), oldEnd: point(0, 4), newStart: point(0, 4), newEnd: point(0, 6), oldText: '', newText: 'c '}
+              ],
+              markersBefore: {1: {1: {range: range(point(0, 2), point(0, 4))}}},
+              markersAfter: {1: {1: {range: range(point(0, 4), point(0, 6))}}}
+            }
+          ],
+          redoStack: [
+            {
+              type: 'transaction',
+              changes: [
+                {oldStart: point(0, 0), oldEnd: point(0, 0), newStart: point(0, 0), newEnd: point(0, 2), oldText: '', newText: 'z '},
+                {oldStart: point(0, 8), oldEnd: point(0, 8), newStart: point(0, 10), newEnd: point(0, 11), oldText: '', newText: 'e'}
+              ],
+              markersBefore: {1: {1: {range: range(point(0, 6), point(0, 8))}}},
+              markersAfter: {1: {1: {range: range(point(0, 0), point(0, 2))}}}
+            },
+            {
+              type: 'transaction',
+              changes: [
+                {oldStart: point(0, 6), oldEnd: point(0, 6), newStart: point(0, 6), newEnd: point(0, 8), oldText: '', newText: 'd '}
+              ],
+              markersBefore: {1: {1: {range: range(point(0, 4), point(0, 6))}}},
+              markersAfter: {1: {1: {range: range(point(0, 6), point(0, 8))}}}
+            },
+            {
+              type: 'checkpoint',
+              id: 3,
+              markers: {1: {1: {range: range(point(0, 4), point(0, 6))}}}
+            }
+          ]
+        }
+      })
+
+      assert.equal(document.getText(), 'a b c ')
+      {
+        const {markers} = document.redo()
+        assert.equal(document.getText(), 'a b c d ')
+        assert.deepEqual(markers, {1: {1: {range: range(point(0, 6), point(0, 8))}}})
+      }
+      {
+        const {markers} = document.redo()
+        assert.equal(document.getText(), 'z a b c d e')
+        assert.deepEqual(markers, {1: {1: {range: range(point(0, 0), point(0, 2))}}})
+      }
+      {
+        const {markers} = document.undo()
+        assert.equal(document.getText(), 'a b c d ')
+        assert.deepEqual(markers, {1: {1: {range: range(point(0, 6), point(0, 8))}}})
+      }
+      {
+        const {markers} = document.undo()
+        assert.equal(document.getText(), 'a b c ')
+        assert.deepEqual(markers, {1: {1: {range: range(point(0, 4), point(0, 6))}}})
+      }
+      {
+        const {markers} = document.undo()
+        assert.equal(document.getText(), 'a b ')
+        assert.deepEqual(markers, {1: {1: {range: range(point(0, 2), point(0, 4))}}})
+      }
+      {
+        const {markers} = document.undo()
+        assert.equal(document.getText(), 'a ')
+        assert.deepEqual(markers, {1: {1: {range: range(point(0, 0), point(0, 2))}}})
+      }
+      assert(document.undo() == null)
+      assert.equal(document.getText(), 'a ')
+
+      // Redo everything
+      while (document.redo()) {}
+
+      // Ensure we set the next checkpoint id appropriately
+      const checkpoint = document.createCheckpoint()
+      assert.equal(checkpoint, 4)
+
+      {
+        const {markers} = document.revertToCheckpoint(3)
+        assert.equal(document.getText(), 'a b c ')
+        assert.deepEqual(markers, {1: {1: {range: range(point(0, 4), point(0, 6))}}})
+      }
+      {
+        const {markers} = document.revertToCheckpoint(2)
+        assert.equal(document.getText(), 'a b ')
+        assert.deepEqual(markers, {1: {1: {range: range(point(0, 2), point(0, 4))}}})
+      }
+    })
+
     test('clearing undo and redo stacks', () => {
       const document = buildDocument(1)
       performInsert(document, {row: 0, column: 0}, 'a')
@@ -926,4 +1035,12 @@ function buildRange (startColumn, endColumn) {
     start: {row: 0, column: startColumn},
     end: {row: 0, column: endColumn}
   }
+}
+
+function range (start, end) {
+  return {start, end}
+}
+
+function point(row, column) {
+  return {row, column}
 }
