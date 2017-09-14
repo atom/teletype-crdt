@@ -26,7 +26,7 @@ class Peer {
     this.siteId = siteId
     this.outboxes = new Map()
     this.localDocument = new LocalDocument(text)
-    this.history = new Document({siteId})
+    this.document = new Document({siteId})
     this.deferredOperations = []
     this.editOperations = []
     this.nonUndoEditOperations = []
@@ -44,7 +44,7 @@ class Peer {
   receive (operation) {
     operation = deserializeOperation(operation)
     this.log('Received', operation)
-    const {textUpdates, markerUpdates} = this.history.integrateOperations([operation])
+    const {textUpdates, markerUpdates} = this.document.integrateOperations([operation])
     // this.log('Applying delta', changes)
     this.localDocument.updateText(textUpdates)
     this.localDocument.updateMarkers(markerUpdates)
@@ -68,7 +68,7 @@ class Peer {
       if (compare(end, ZERO_POINT) > 0 || text.length > 0) {
         this.log('setTextInRange', start, end, JSON.stringify(text))
         this.localDocument.setTextInRange(start, end, text)
-        operations = this.history.setTextInRange(start, end, text)
+        operations = this.document.setTextInRange(start, end, text)
         break
       }
     }
@@ -85,9 +85,9 @@ class Peer {
     const opToUndo = this.editOperations[random(this.editOperations.length)]
     const {spliceId} = opToUndo
 
-    if (this.history.hasAppliedSplice(spliceId)) {
+    if (this.document.hasAppliedSplice(spliceId)) {
       this.log('Undoing', opToUndo)
-      const {operations, textUpdates} = this.history.undoOrRedoOperations([opToUndo])
+      const {operations, textUpdates} = this.document.undoOrRedoOperations([opToUndo])
       this.log('Applying delta', textUpdates)
       this.localDocument.updateText(textUpdates)
       this.log('Text', JSON.stringify(this.localDocument.text))
@@ -126,7 +126,7 @@ class Peer {
 
     this.log('Update markers', markerUpdates)
     this.localDocument.updateMarkers({[this.siteId]: markerUpdates})
-    const operations = this.history.updateMarkers(markerUpdates)
+    const operations = this.document.updateMarkers(markerUpdates)
     for (const operation of operations) {
       this.send(operation)
     }
@@ -138,19 +138,19 @@ class Peer {
     for (let i = 0; i < n; i++) {
       const index = random(this.nonUndoEditOperations.length)
       const operation = this.nonUndoEditOperations[index]
-      if (this.history.hasAppliedSplice(operation.spliceId)) operationsSet.add(operation)
+      if (this.document.hasAppliedSplice(operation.spliceId)) operationsSet.add(operation)
     }
     const operations = Array.from(operationsSet)
-    const delta = this.history.textUpdatesForOperations(operations)
+    const delta = this.document.textUpdatesForOperations(operations)
 
     const documentCopy = new LocalDocument(this.localDocument.text)
     for (const change of delta.slice().reverse()) {
       documentCopy.setTextInRange(change.newStart, change.newEnd, change.oldText)
     }
 
-    const replicaCopy = this.history.replicate(this.history.siteId)
+    const replicaCopy = this.document.replicate(this.document.siteId)
     const notUndoneOperations = operations.filter((operation) =>
-      !this.history.isSpliceUndone(operation)
+      !this.document.isSpliceUndone(operation)
     )
     replicaCopy.undoOrRedoOperations(notUndoneOperations)
 

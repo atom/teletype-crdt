@@ -816,14 +816,14 @@ suite('Document', () => {
               peer.verifyTextUpdatesForRandomOperations(random)
             }
 
-            assert.equal(peer.history.getText(), peer.localDocument.text)
+            assert.equal(peer.document.getText(), peer.localDocument.text)
 
             operationCount++
           } else {
             const peer = peersWithOutboundOperations[random(peersWithOutboundOperations.length)]
             peer.deliverRandomOperation(random)
 
-            assert.equal(peer.history.getText(), peer.localDocument.text)
+            assert.equal(peer.document.getText(), peer.localDocument.text)
           }
         }
 
@@ -841,7 +841,7 @@ suite('Document', () => {
         }
 
         for (let j = 0; j < peers.length; j++) {
-          assert.equal(peers[j].localDocument.text, peers[j].history.getText())
+          assert.equal(peers[j].localDocument.text, peers[j].document.getText())
         }
 
         for (let j = 0; j < peers.length - 1; j++) {
