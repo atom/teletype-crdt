@@ -465,6 +465,17 @@ suite('Document', () => {
       }
     })
 
+    test('skipping insertions on the undo stack', () => {
+      const replicaA = buildDocument(1)
+      const replicaB = buildDocument(1)
+
+      integrateOperations(replicaB, performSetTextInRange(replicaA, ZERO_POINT, ZERO_POINT, 'abcdefg', {pushToHistory: false}))
+      assert.equal(replicaA.testLocalDocument.text, 'abcdefg')
+      assert.equal(replicaB.testLocalDocument.text, 'abcdefg')
+      assert(!replicaA.undo())
+      assert(!replicaB.undo())
+    })
+
     test('clearing undo and redo stacks', () => {
       const replica = buildDocument(1)
       performInsert(replica, {row: 0, column: 0}, 'a')
@@ -872,9 +883,9 @@ function performDelete (replica, start, end) {
   return performSetTextInRange(replica, start, end, '')
 }
 
-function performSetTextInRange (replica, start, end, text) {
+function performSetTextInRange (replica, start, end, text, options) {
   replica.testLocalDocument.setTextInRange(start, end, text)
-  return replica.setTextInRange(start, end, text)
+  return replica.setTextInRange(start, end, text, options)
 }
 
 function performUndo (replica) {
