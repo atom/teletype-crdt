@@ -891,6 +891,85 @@ suite('Document', () => {
       performUndo(document)
       assert.equal(document.testLocalDocument.text, '')
     })
+
+    test('getting the state of the history', () => {
+      const document = buildDocument(1, 'a ')
+      performInsert(document, point(0, 2), 'b ')
+      performInsert(document, point(0, 4), 'c ')
+      const checkpoint1 = document.createCheckpoint({
+        markers: {1: {1: {range: range(point(0, 2), point(0, 5))}}}
+      })
+      performInsert(document, point(0, 0), 'd ')
+      performInsert(document, point(0, 8), 'e ')
+      document.groupChangesSinceCheckpoint(checkpoint1, {
+        markers: {1: {1: {range: range(point(0, 1), point(0, 3))}}}
+      })
+      performInsert(document, point(0, 10), 'f ')
+      const checkpoint2 = document.createCheckpoint({
+        markers: {1: {1: {range: range(point(0, 0), point(0, 1))}}}
+      })
+      performInsert(document, point(0, 10), 'g ')
+      document.undo()
+      document.undo()
+      const replica = replicateDocument(2, document)
+
+      const history = document.getHistory(3)
+
+      // The current implementation of getHistory temporarily mutates the replica.
+      // Here we make sure we restore the state of the document and its undo counts.
+      assert.equal(document.getText(), replica.getText())
+      integrateOperations(document, replica.undoOrRedoOperations(replica.operations.slice()).operations)
+      assert.equal(document.getText(), replica.getText())
+
+      assert.equal(history.nextCheckpointId, 3)
+      assert.deepEqual(history.undoStack, [
+        {
+          type: "transaction",
+          changes: [
+            {oldStart: point(0, 4), oldEnd: point(0, 4), oldText: "", newStart: point(0, 4), newEnd: point(0, 6), newText: "c "}
+          ],
+          markersBefore: null,
+          markersAfter: null
+        },
+        {
+          type: "checkpoint",
+          id: 1,
+          markers: {1: {1: {range: range(point(0, 2), point(0, 5))}}}
+        },
+        {
+          type: "transaction",
+          changes: [
+            {oldStart: point(0, 0), oldEnd: point(0, 0), oldText: "", newStart: point(0, 0), newEnd: point(0, 2), newText: "d "},
+            {oldStart: point(0, 6), oldEnd: point(0, 6), oldText: "", newStart: point(0, 8), newEnd: point(0, 10), newText: "e "}
+          ],
+          markersBefore: {1: {1: {range: range(point(0, 2), point(0, 5))}}},
+          markersAfter: {1: {1: {range: range(point(0, 1), point(0, 3))}}}
+        }
+      ])
+      assert.deepEqual(history.redoStack, [
+        {
+          type: "transaction",
+          changes: [
+            {oldStart: point(0, 10), oldEnd: point(0, 10), oldText: "", newStart: point(0, 10), newEnd: point(0, 12), newText: "g "}
+          ],
+          markersBefore: null,
+          markersAfter: null
+        },
+        {
+          type: "checkpoint",
+          id: 2,
+          markers: {1: {1: {range: range(point(0, 0), point(0, 1))}}}
+        },
+        {
+          type: "transaction",
+          changes: [
+            {oldStart: point(0, 10), oldEnd: point(0, 10), oldText: "", newStart: point(0, 10), newEnd: point(0, 12), newText: "f "}
+          ],
+          markersBefore: null,
+          markersAfter: null
+        }
+      ])
+    })
   })
 
   test('replica convergence with random operations', function () {
