@@ -867,29 +867,82 @@ suite('Document', () => {
       document.getNow = () => now
 
       let now = 0
+      const initialMarkers = {
+        1: {
+          1: {range: range(point(0, 0), point(0, 0))}
+        }
+      }
+      const checkpoint1 = document.createCheckpoint({markers: initialMarkers})
       performInsert(document, {row: 0, column: 0}, 'a')
+      const markersAfterInsertion1 = {
+        1: {
+          1: {range: range(point(0, 1), point(0, 1))}
+        }
+      }
+      document.groupChangesSinceCheckpoint(checkpoint1, {markers: markersAfterInsertion1, deleteCheckpoint: true})
       document.applyGroupingInterval(101)
 
       now += 100
+      const checkpoint2 = document.createCheckpoint({markers: markersAfterInsertion1})
       performInsert(document, {row: 0, column: 1}, 'b')
+      const markersAfterInsertion2 = {
+        1: {
+          1: {range: range(point(0, 2), point(0, 2))}
+        }
+      }
+      document.groupChangesSinceCheckpoint(checkpoint2, {markers: markersAfterInsertion2, deleteCheckpoint: true})
       document.applyGroupingInterval(201)
 
       now += 200
+      const checkpoint3 = document.createCheckpoint({markers: markersAfterInsertion2})
       performInsert(document, {row: 0, column: 2}, 'c')
+      const markersAfterInsertion3 = {
+        1: {
+          1: {range: range(point(0, 3), point(0, 3))}
+        }
+      }
+      document.groupChangesSinceCheckpoint(checkpoint3, {markers: markersAfterInsertion3, deleteCheckpoint: true})
       document.applyGroupingInterval(201)
 
       // Not grouped with previous transaction because its associated grouping
       // interval is 201 and we always respect the minimum associated interval
       // between the last and penultimate transaction.
       now += 300
+      const checkpoint4 = document.createCheckpoint({markers: markersAfterInsertion3})
       performInsert(document, {row: 0, column: 3}, 'd')
+      const markersAfterInsertion4 = {
+        1: {
+          1: {range: range(point(0, 4), point(0, 4))}
+        }
+      }
+      document.groupChangesSinceCheckpoint(checkpoint4, {markers: markersAfterInsertion4, deleteCheckpoint: true})
       document.applyGroupingInterval(301)
 
       assert.equal(document.testLocalDocument.text, 'abcd')
-      performUndo(document)
-      assert.equal(document.testLocalDocument.text, 'abc')
-      performUndo(document)
-      assert.equal(document.testLocalDocument.text, '')
+
+      {
+        const {markers} = performUndo(document)
+        assert.equal(document.testLocalDocument.text, 'abc')
+        assert.deepEqual(markers, markersAfterInsertion3)
+      }
+
+      {
+        const {markers} = performUndo(document)
+        assert.equal(document.testLocalDocument.text, '')
+        assert.deepEqual(markers, initialMarkers)
+      }
+
+      {
+        const {markers} = performRedo(document)
+        assert.equal(document.testLocalDocument.text, 'abc')
+        assert.deepEqual(markers, markersAfterInsertion3)
+      }
+
+      {
+        const {markers} = performRedo(document)
+        assert.equal(document.testLocalDocument.text, 'abcd')
+        assert.deepEqual(markers, markersAfterInsertion4)
+      }
     })
 
     test('getting the state of the history', () => {
