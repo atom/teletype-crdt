@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "node script/test",
-    "compile-protobuf": "protoc --js_out=import_style=commonjs,binary:lib teletype.proto"
+    "compile-protobuf": "protoc --js_out=import_style=commonjs,binary:lib teletype-crdt.proto"
   },
   "repository": {
     "type": "git",
