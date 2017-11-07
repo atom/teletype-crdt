@@ -1,18 +1,18 @@
 {
-  "name": "@atom/tachyon",
+  "name": "@atom/teletype-crdt",
   "version": "0.5.1",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "node script/test",
-    "compile-protobuf": "protoc --js_out=import_style=commonjs,binary:lib tachyon.proto"
+    "compile-protobuf": "protoc --js_out=import_style=commonjs,binary:lib teletype.proto"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/atom/tachyon.git"
+    "url": "https://github.com/atom/teletype.git"
   },
   "bugs": {
-    "url": "https://github.com/atom/tachyon/issues"
+    "url": "https://github.com/atom/teletype/issues"
   },
   "license": "MIT",
   "devDependencies": {
