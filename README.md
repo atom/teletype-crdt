@@ -6,13 +6,13 @@ The string-wise sequence CRDT powering peer-to-peer collaborative editing in [At
 
 After cloning this repository, you can install its dependencies by running:
 
-```bash
+```
 npm install
 ```
 
 And then run tests via:
 
-```bash
+```
 npm test
 ```
 
