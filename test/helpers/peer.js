@@ -157,6 +157,12 @@ class Peer {
     assert.equal(documentCopy.text, replicaCopy.getText())
   }
 
+  verifyDocumentReplication () {
+    const replica = this.document.replicate(this.document.siteId)
+    assert.equal(replica.getText(), this.document.getText())
+    assert.deepEqual(replica.getMarkers(), this.document.getMarkers())
+  }
+
   deliverRandomOperation (random) {
     const outboxes = Array.from(this.outboxes).filter(([peer, operations]) => operations.length > 0)
     const [peer, operations] = outboxes[random(outboxes.length)]
