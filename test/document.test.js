@@ -1055,6 +1055,10 @@ suite('Document', () => {
               peer.verifyTextUpdatesForRandomOperations(random)
             }
 
+            if (random(10) < 3) {
+              peer.verifyDocumentReplication()
+            }
+
             assert.equal(peer.document.getText(), peer.localDocument.text)
 
             operationCount++
