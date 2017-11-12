@@ -16,8 +16,8 @@ suite('Document', () => {
       integrateOperations(replica1, ops2)
       integrateOperations(replica2, ops1)
 
-      assert.equal(replica1.testLocalDocument.text, 'ab')
-      assert.equal(replica2.testLocalDocument.text, 'ab')
+      assert.equal(replica1.testLocalDocument.text, 'ba')
+      assert.equal(replica2.testLocalDocument.text, 'ba')
     })
 
     test('concurrent inserts at the same position inside a previous insertion', () => {
@@ -29,8 +29,8 @@ suite('Document', () => {
       integrateOperations(replica1, ops2)
       integrateOperations(replica2, ops1)
 
-      assert.equal(replica1.testLocalDocument.text, 'AB+++***CDEFG')
-      assert.equal(replica2.testLocalDocument.text, 'AB+++***CDEFG')
+      assert.equal(replica1.testLocalDocument.text, 'AB***+++CDEFG')
+      assert.equal(replica2.testLocalDocument.text, 'AB***+++CDEFG')
     })
 
     test('concurrent inserts at different positions inside a previous insertion', () => {
