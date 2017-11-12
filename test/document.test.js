@@ -1032,7 +1032,7 @@ suite('Document', () => {
     for (var i = 0; i < 1000; i++) {
       const peers = Peer.buildNetwork(peerCount, '')
       let seed = initialSeed + i
-      // seed = 1504270975436
+      // seed = 1510334047209
       // global.enableLog = true
       const failureMessage = `Random seed: ${seed}`
       try {
