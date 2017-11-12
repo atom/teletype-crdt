@@ -37,12 +37,12 @@ class Peer {
   }
 
   send (operation) {
-    // operation = serializeOperation(operation)
+    operation = serializeOperation(operation)
     this.outboxes.forEach((outbox) => outbox.push(operation))
   }
 
   receive (operation) {
-    // operation = deserializeOperation(operation)
+    operation = deserializeOperation(operation)
     this.log('Received', operation)
     const {textUpdates, markerUpdates} = this.document.integrateOperations([operation])
     // this.log('Applying delta', changes)
