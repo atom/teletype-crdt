@@ -1,6 +1,6 @@
 # teletype-crdt
 
-The string-wise sequence CRDT powering peer-to-peer collaborative editing in [Atom Teletype](https://github.com/atom/teletype).
+The string-wise sequence CRDT powering peer-to-peer collaborative editing in [Teletype for Atom](https://github.com/atom/teletype).
 
 ## Hacking
 
