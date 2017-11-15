@@ -782,6 +782,9 @@ suite('Document', () => {
         replicaA.testLocalDocument.setTextInRange(change.newStart, change.newEnd, change.oldText)
       }
       assert.equal(replicaA.testLocalDocument.text, 'b1 a1 ')
+
+      // Ensure we don't modify the undo stack when getting changes since checkpoint (regression).
+      assert.deepEqual(replicaA.getChangesSinceCheckpoint(checkpoint), changesSinceCheckpoint)
     })
 
     test('undoing and redoing an operation that occurred adjacent to a checkpoint', () => {
