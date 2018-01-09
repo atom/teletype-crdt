@@ -865,6 +865,32 @@ suite('Document', () => {
       assert.equal(replicaB.testLocalDocument.text, 'ac')
     })
 
+    test('grouping the last 2 transactions', () => {
+      const document = buildDocument(1)
+      performInsert(document, {row: 0, column: 0}, 'a')
+      performInsert(document, {row: 0, column: 1}, 'b')
+      const checkpoint1 = document.createCheckpoint()
+      performInsert(document, {row: 0, column: 2}, 'c')
+      const checkpoint2 = document.createCheckpoint()
+
+      assert(document.groupLastChanges())
+      assert.equal(document.getText(), 'abc')
+      document.undo()
+      assert.equal(document.getText(), 'a')
+      document.redo()
+      assert.equal(document.getText(), 'abc')
+      assert(!document.revertToCheckpoint(checkpoint1))
+      performInsert(document, {row: 0, column: 3}, 'd')
+      assert(!document.revertToCheckpoint(checkpoint2))
+
+      // Can't group past barrier checkpoints
+      const checkpoint3 = document.createCheckpoint({isBarrier: true})
+      performInsert(document, {row: 0, column: 4}, 'e')
+      assert(!document.groupLastChanges())
+      assert(document.revertToCheckpoint(checkpoint3))
+      assert.equal(document.getText(), 'abcd')
+    })
+
     test('applying a grouping interval', () => {
       const document = buildDocument(1)
       document.getNow = () => now
