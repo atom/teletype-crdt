@@ -1148,7 +1148,7 @@ function replicateDocument (siteId, document) {
 }
 
 function performInsert (replica, position, text) {
-  return performSetTextInRange(replica, position, ZERO_POINT, text)
+  return performSetTextInRange(replica, position, position, text)
 }
 
 function performDelete (replica, start, end) {
