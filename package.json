@@ -16,8 +16,8 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "electron": "~>2.0.0",
-    "mocha": "^3.4.1",
+    "electron": "^4.0.3",
+    "mocha": "^5.2.0",
     "random-seed": "^0.3.0",
     "yargs": "^8.0.1"
   },
