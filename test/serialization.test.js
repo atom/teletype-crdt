@@ -11,6 +11,7 @@ suite('serialization/deserialization', () => {
       spliceId: {site: 1, seq: 2},
       insertion: {
         text: 'hello',
+        insertionClock: 3,
         leftDependencyId: {site: 1, seq: 1},
         offsetInLeftDependency: {row: 0, column: 5},
         rightDependencyId: {site: 1, seq: 1},
