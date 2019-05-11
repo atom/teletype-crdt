@@ -1054,6 +1054,47 @@ suite('Document', () => {
     })
   })
 
+  test.only('getChangesSince', () => {
+    const document1v1 = new Document({siteId: 1})
+
+    const document1v2 = document1v1.replicate(1)
+    document1v2.setTextInRange(point(0, 0), point(0, 0), 'Lorem ')
+    assertSparseDeepEqual(document1v2.getChangesSinceVersion(document1v1.getVersion()), [
+      {newStart: point(0, 0), newEnd: point(0, 6), newText: 'Lorem ', oldText: ''},
+    ])
+
+    const document1v3 = document1v2.replicate(1)
+    document1v3.setTextInRange(point(0, 6), point(0, 6), 'ipsum ')
+    assertSparseDeepEqual(document1v3.getChangesSinceVersion(document1v2.getVersion()), [
+      {newStart: point(0, 6), newEnd: point(0, 12), newText: 'ipsum ', oldText: ''},
+    ])
+
+    const document2v1 = document1v3.replicate(2)
+    document2v1.setTextInRange(point(0, 1), point(0, 2), 'ö')
+    assertSparseDeepEqual(document2v1.getChangesSinceVersion(document1v3.getVersion()), [
+      {newStart: point(0, 1), newEnd: point(0, 2), newText: 'ö', oldText: 'o'},
+    ])
+
+    function assertSparseDeepEqual(left, right) {
+      const normalizedLeft = []
+      for (let i = 0; i < right.length; i++) {
+        const leftElement = left[i]
+        const rightElement = right[i]
+        if (leftElement == null) {
+          break
+        } else {
+          const normalizedLeftElement = {}
+          for (const key in rightElement) {
+            normalizedLeftElement[key] = leftElement[key]
+          }
+          normalizedLeft.push(normalizedLeftElement)
+        }
+      }
+
+      assert.deepEqual(normalizedLeft, right)
+    }
+  })
+
   test('replica convergence with random operations', function () {
     this.timeout(Infinity)
     const initialSeed = Date.now()
