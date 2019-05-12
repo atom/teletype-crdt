@@ -22,6 +22,6 @@
     "yargs": "^8.0.1"
   },
   "dependencies": {
-    "google-protobuf": "^3.3.0"
+    "google-protobuf": "^3.7.1"
   }
 }
