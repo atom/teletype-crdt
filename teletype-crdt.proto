@@ -32,6 +32,7 @@ message Operation {
   message Undo {
     SpliceId splice_id = 1;
     uint32 undo_count = 2;
+    SpliceId id = 3;
   }
 
   message MarkersUpdate {

@@ -34,6 +34,7 @@ suite('serialization/deserialization', () => {
   test('undo', () => {
     const op = {
       type: 'undo',
+      id: {site: 1, seq: 4},
       spliceId: {site: 1, seq: 3},
       undoCount: 3
     }
