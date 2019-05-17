@@ -1054,26 +1054,66 @@ suite('Document', () => {
     })
   })
 
-  test.only('getChangesSince', () => {
-    const document1v1 = new Document({siteId: 1})
+  test('getChangesSinceVersion', () => {
+    const document1 = new Document({siteId: 1})
 
-    const document1v2 = document1v1.replicate(1)
-    document1v2.setTextInRange(point(0, 0), point(0, 0), 'Lorem ')
-    assertSparseDeepEqual(document1v2.getChangesSinceVersion(document1v1.getVersion()), [
-      {newStart: point(0, 0), newEnd: point(0, 6), newText: 'Lorem ', oldText: ''},
-    ])
+    {
+      const version = document1.getVersion()
+      document1.setTextInRange(point(0, 0), point(0, 0), 'Lorem ')
+      assertSparseDeepEqual(document1.getChangesSinceVersion(version), [
+        {newStart: point(0, 0), newEnd: point(0, 6), newText: 'Lorem ', oldText: ''},
+      ])
+    }
 
-    const document1v3 = document1v2.replicate(1)
-    document1v3.setTextInRange(point(0, 6), point(0, 6), 'ipsum ')
-    assertSparseDeepEqual(document1v3.getChangesSinceVersion(document1v2.getVersion()), [
-      {newStart: point(0, 6), newEnd: point(0, 12), newText: 'ipsum ', oldText: ''},
-    ])
+    {
+      const version = document1.getVersion()
+      document1.undo()
+      assertSparseDeepEqual(document1.getChangesSinceVersion(version), [
+        {newStart: point(0, 0), newEnd: point(0, 0), newText: '', oldText: 'Lorem '},
+      ])
+    }
 
-    const document2v1 = document1v3.replicate(2)
-    document2v1.setTextInRange(point(0, 1), point(0, 2), 'ö')
-    assertSparseDeepEqual(document2v1.getChangesSinceVersion(document1v3.getVersion()), [
-      {newStart: point(0, 1), newEnd: point(0, 2), newText: 'ö', oldText: 'o'},
-    ])
+    {
+      const version = document1.getVersion()
+      document1.redo()
+      assertSparseDeepEqual(document1.getChangesSinceVersion(version), [
+        {newStart: point(0, 0), newEnd: point(0, 6), newText: 'Lorem ', oldText: ''},
+      ])
+    }
+
+    {
+      const version = document1.getVersion()
+      document1.setTextInRange(point(0, 6), point(0, 6), 'ipsum ')
+      assertSparseDeepEqual(document1.getChangesSinceVersion(version), [
+        {newStart: point(0, 6), newEnd: point(0, 12), newText: 'ipsum ', oldText: ''},
+      ])
+    }
+
+    const document2 = document1.replicate(2)
+    {
+
+      const version = document2.getVersion()
+      document2.setTextInRange(point(0, 1), point(0, 2), 'ö')
+      assertSparseDeepEqual(document2.getChangesSinceVersion(version), [
+        {newStart: point(0, 1), newEnd: point(0, 2), newText: 'ö', oldText: 'o'},
+      ])
+    }
+
+    {
+      const version = document2.getVersion()
+      document2.undo()
+      assertSparseDeepEqual(document2.getChangesSinceVersion(version), [
+        {newStart: point(0, 1), newEnd: point(0, 2), newText: 'o', oldText: 'ö'},
+      ])
+    }
+
+    {
+      const version = document2.getVersion()
+      document2.redo()
+      assertSparseDeepEqual(document2.getChangesSinceVersion(version), [
+        {newStart: point(0, 1), newEnd: point(0, 2), newText: 'ö', oldText: 'o'},
+      ])
+    }
 
     function assertSparseDeepEqual(left, right) {
       const normalizedLeft = []
