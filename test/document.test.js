@@ -1163,6 +1163,7 @@ suite('Document', () => {
 
             if (random(10) < 3) {
               peer.verifyTextUpdatesForRandomOperations(random)
+              peer.verifyChangesSinceRandomVersion(random)
             }
 
             if (random(10) < 3) {

@@ -157,6 +157,21 @@ class Peer {
     assert.equal(documentCopy.text, replicaCopy.getText())
   }
 
+  verifyChangesSinceRandomVersion (random) {
+    for (let i = 0; i < 5; i++) {
+      const operations = this.editOperations.slice(0, random.intBetween(0, this.editOperations.length))
+      const prevDocument = new Document({siteId: this.document.siteId})
+      prevDocument.integrateOperations(operations)
+      const prevLocalDocument = new LocalDocument(prevDocument.getText())
+
+      const delta = this.document.getChangesSinceVersion(prevDocument.getVersion())
+      for (const change of delta.reverse()) {
+        prevLocalDocument.setTextInRange(change.oldStart, change.oldEnd, change.newText)
+      }
+      assert.equal(prevLocalDocument.text, this.localDocument.text)
+    }
+  }
+
   verifyDocumentReplication () {
     const replica = this.document.replicate(this.document.siteId)
     assert.equal(replica.getText(), this.document.getText())
