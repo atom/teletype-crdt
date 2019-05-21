@@ -1061,7 +1061,7 @@ suite('Document', () => {
       const version = document1.getVersion()
       document1.setTextInRange(point(0, 0), point(0, 0), 'Lorem ')
       assertSparseDeepEqual(document1.getChangesSinceVersion(version), [
-        {newStart: point(0, 0), newEnd: point(0, 6), newText: 'Lorem ', oldText: ''},
+        {newStart: point(0, 0), newEnd: point(0, 6), newText: 'Lorem ', oldText: '', author: 1},
       ])
     }
 
@@ -1069,7 +1069,7 @@ suite('Document', () => {
       const version = document1.getVersion()
       document1.undo()
       assertSparseDeepEqual(document1.getChangesSinceVersion(version), [
-        {newStart: point(0, 0), newEnd: point(0, 0), newText: '', oldText: 'Lorem '},
+        {newStart: point(0, 0), newEnd: point(0, 0), newText: '', oldText: 'Lorem ', author: 1},
       ])
     }
 
@@ -1077,7 +1077,7 @@ suite('Document', () => {
       const version = document1.getVersion()
       document1.redo()
       assertSparseDeepEqual(document1.getChangesSinceVersion(version), [
-        {newStart: point(0, 0), newEnd: point(0, 6), newText: 'Lorem ', oldText: ''},
+        {newStart: point(0, 0), newEnd: point(0, 6), newText: 'Lorem ', oldText: '', author: 1},
       ])
     }
 
@@ -1085,7 +1085,7 @@ suite('Document', () => {
       const version = document1.getVersion()
       document1.setTextInRange(point(0, 6), point(0, 6), 'ipsum ')
       assertSparseDeepEqual(document1.getChangesSinceVersion(version), [
-        {newStart: point(0, 6), newEnd: point(0, 12), newText: 'ipsum ', oldText: ''},
+        {newStart: point(0, 6), newEnd: point(0, 12), newText: 'ipsum ', oldText: '', author: 1},
       ])
     }
 
@@ -1095,7 +1095,7 @@ suite('Document', () => {
       const version = document2.getVersion()
       document2.setTextInRange(point(0, 1), point(0, 2), 'ö')
       assertSparseDeepEqual(document2.getChangesSinceVersion(version), [
-        {newStart: point(0, 1), newEnd: point(0, 2), newText: 'ö', oldText: 'o'},
+        {newStart: point(0, 1), newEnd: point(0, 2), newText: 'ö', oldText: 'o', author: 2},
       ])
     }
 
@@ -1103,7 +1103,7 @@ suite('Document', () => {
       const version = document2.getVersion()
       document2.undo()
       assertSparseDeepEqual(document2.getChangesSinceVersion(version), [
-        {newStart: point(0, 1), newEnd: point(0, 2), newText: 'o', oldText: 'ö'},
+        {newStart: point(0, 1), newEnd: point(0, 2), newText: 'o', oldText: 'ö', author: 2},
       ])
     }
 
@@ -1111,7 +1111,7 @@ suite('Document', () => {
       const version = document2.getVersion()
       document2.redo()
       assertSparseDeepEqual(document2.getChangesSinceVersion(version), [
-        {newStart: point(0, 1), newEnd: point(0, 2), newText: 'ö', oldText: 'o'},
+        {newStart: point(0, 1), newEnd: point(0, 2), newText: 'ö', oldText: 'o', author: 2},
       ])
     }
 
