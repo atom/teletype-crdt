@@ -100,7 +100,7 @@ class Peer {
     const markerUpdates = {}
     const siteMarkerLayers = this.localDocument.markers[this.siteId] || {}
 
-    const n = random.intBetween(1, 1)
+    const n = random.intBetween(1, 3)
     for (let i = 0; i < n; i++) {
       const layerId = random(10)
 
