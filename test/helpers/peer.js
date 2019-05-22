@@ -64,7 +64,7 @@ class Peer {
     let operations
     while (true) {
       let {start, end} = getRandomDocumentRange(random, this.localDocument)
-      const text = buildRandomLines(random, 1)
+      const text = buildRandomLines(random, 5)
       if (compare(end, ZERO_POINT) > 0 || text.length > 0) {
         this.log('setTextInRange', start, end, JSON.stringify(text))
         this.localDocument.setTextInRange(start, end, text)
