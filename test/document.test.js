@@ -1115,6 +1115,17 @@ suite('Document', () => {
       ])
     }
 
+    {
+      // Adjacent changes aren't coalesced when the author differs.
+      const version = document2.getVersion()
+      document2.setTextInRange(point(0, 12), point(0, 12), "amet ")
+      document2.integrateOperations(document1.setTextInRange(point(0, 12), point(0, 12), "sit "))
+      assertSparseDeepEqual(document2.getChangesSinceVersion(version), [
+        {newStart: point(0, 12), newEnd: point(0, 16), newText: 'sit ', oldText: '', author: 1},
+        {newStart: point(0, 16), newEnd: point(0, 21), newText: 'amet ', oldText: '', author: 2},
+      ])
+    }
+
     function assertSparseDeepEqual(left, right) {
       const normalizedLeft = []
       for (let i = 0; i < right.length; i++) {
