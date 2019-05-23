@@ -1126,6 +1126,16 @@ suite('Document', () => {
       ])
     }
 
+    {
+      // Adjacent changes which re-create the existing content aren't coalesced.
+      const startingText = document1.getText()
+      const version = document1.getVersion()
+      document1.setTextInRange(point(0, 0), point(0, startingText.length), "")
+      document1.setTextInRange(point(0, 0), point(0, 0), startingText)
+      assert.equal(document1.getText(), startingText)
+      assert.equal(document1.getChangesSinceVersion(version), [])
+    }
+
     function assertSparseDeepEqual(left, right) {
       const normalizedLeft = []
       for (let i = 0; i < right.length; i++) {
