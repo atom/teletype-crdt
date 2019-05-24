@@ -1127,13 +1127,13 @@ suite('Document', () => {
     }
 
     {
-      // Adjacent changes which re-create the existing content aren't coalesced.
-      const startingText = document1.getText()
-      const version = document1.getVersion()
-      document1.setTextInRange(point(0, 0), point(0, startingText.length), "")
-      document1.setTextInRange(point(0, 0), point(0, 0), startingText)
-      assert.equal(document1.getText(), startingText)
-      assert.equal(document1.getChangesSinceVersion(version), [])
+      // Skip reporting changes that wouldn't have an impact on the document.
+      const version = document2.getVersion()
+      document2.setTextInRange(point(0, 21), point(0, 21), "consecteur ")
+      document2.setTextInRange(point(0, 23), point(0, 31), "nnoisseur")
+      assertSparseDeepEqual(document2.getChangesSinceVersion(version), [
+        {newStart: point(0, 21), newEnd: point(0, 33), newText: 'connoisseur ', oldText: '', author: 2},
+      ])
     }
 
     function assertSparseDeepEqual(left, right) {
@@ -1171,8 +1171,9 @@ suite('Document', () => {
         let operationCount = 0
         while (operationCount < 10) {
           const peersWithOutboundOperations = peers.filter(p => !p.isOutboxEmpty())
+          let peer
           if (peersWithOutboundOperations.length === 0 || random(2)) {
-            const peer = peers[random(peerCount)]
+            peer = peers[random(peerCount)]
             const k = random(10)
             if (k < 2 && peer.editOperations.length > 0) {
               peer.undoRandomOperation(random)
@@ -1182,24 +1183,19 @@ suite('Document', () => {
               peer.performRandomEdit(random)
             }
 
-            if (random(10) < 3) {
-              peer.verifyTextUpdatesForRandomOperations(random)
-              peer.verifyChangesSinceRandomVersion(random)
-            }
-
-            if (random(10) < 3) {
-              peer.verifyDocumentReplication()
-            }
-
-            assert.equal(peer.document.getText(), peer.localDocument.text)
-
             operationCount++
           } else {
-            const peer = peersWithOutboundOperations[random(peersWithOutboundOperations.length)]
+            peer = peersWithOutboundOperations[random(peersWithOutboundOperations.length)]
             peer.deliverRandomOperation(random)
-
-            assert.equal(peer.document.getText(), peer.localDocument.text)
           }
+
+          assert.equal(peer.document.getText(), peer.localDocument.text)
+
+          if (random(10) < 3) {
+            peer.verifyDocumentReplication()
+          }
+          peer.verifyTextUpdatesForRandomOperations(random)
+          peer.verifyChangesSinceRandomVersion(random, operationCount)
         }
 
         while (true) {
