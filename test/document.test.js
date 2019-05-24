@@ -1136,6 +1136,24 @@ suite('Document', () => {
       ])
     }
 
+    {
+      // Skip reporting changes that wouldn't have an impact on the document 
+      // even if they come from different sites.
+      const document2 = document1.replicate(2)
+      document2.integrateOperations(document1.setTextInRange(point(0, 0), point(0, 15), ""))
+      document2.integrateOperations(document1.setTextInRange(point(0, 0), point(0, 0), "12345"))
+
+      const version = document2.getVersion()
+
+      document2.integrateOperations(document1.setTextInRange(point(0, 1), point(0, 3), ""))
+      document2.integrateOperations(document1.setTextInRange(point(0, 1), point(0, 1), "23"))
+
+      document1.integrateOperations(document2.setTextInRange(point(0, 1), point(0, 2), ""))
+      document1.integrateOperations(document2.setTextInRange(point(0, 1), point(0, 1), "2"))
+
+      assert.deepEqual(document1.getChangesSinceVersion(version), [])
+    }
+
     function assertSparseDeepEqual(left, right) {
       const normalizedLeft = []
       for (let i = 0; i < right.length; i++) {
