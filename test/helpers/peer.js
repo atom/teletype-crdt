@@ -144,9 +144,10 @@ class Peer {
     const delta = this.document.textUpdatesForOperations(operations)
 
     const documentCopy = new LocalDocument(this.localDocument.text)
-    for (const change of delta.slice().reverse()) {
-      assert.notEqual(change.newText, change.oldText)
-      documentCopy.setTextInRange(change.newStart, change.newEnd, change.oldText)
+    for (const {newStart, newEnd, oldText, newText} of delta.slice().reverse()) {
+      assert.equal(newText, documentCopy.getTextInRange(newStart, newEnd))
+      assert.notEqual(newText, oldText)
+      documentCopy.setTextInRange(newStart, newEnd, oldText)
     }
 
     const replicaCopy = this.document.replicate(this.document.siteId)
@@ -166,9 +167,10 @@ class Peer {
       const prevLocalDocument = new LocalDocument(prevDocument.getText())
 
       const delta = this.document.getChangesSinceVersion(prevDocument.getVersion())
-      for (const change of delta.reverse()) {
-        assert.notEqual(change.oldText, change.newText)
-        prevLocalDocument.setTextInRange(change.oldStart, change.oldEnd, change.newText)
+      for (const {oldStart, oldEnd, oldText, newText} of delta.reverse()) {
+        assert.equal(oldText, prevLocalDocument.getTextInRange(oldStart, oldEnd))
+        assert.notEqual(oldText, newText)
+        prevLocalDocument.setTextInRange(oldStart, oldEnd, newText)
       }
 
       assert.equal(prevLocalDocument.text, this.localDocument.text)

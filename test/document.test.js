@@ -1137,7 +1137,7 @@ suite('Document', () => {
     }
 
     {
-      // Skip reporting changes that wouldn't have an impact on the document 
+      // Skip reporting changes that wouldn't have an impact on the document
       // even if they come from different sites.
       const document2 = document1.replicate(2)
       document2.integrateOperations(document1.setTextInRange(point(0, 0), point(0, 15), ""))
@@ -1213,7 +1213,7 @@ suite('Document', () => {
             peer.verifyDocumentReplication()
           }
           peer.verifyTextUpdatesForRandomOperations(random)
-          peer.verifyChangesSinceRandomVersion(random, operationCount)
+          peer.verifyChangesSinceRandomVersion(random)
         }
 
         while (true) {
