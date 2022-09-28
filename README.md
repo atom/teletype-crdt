@@ -1,4 +1,5 @@
-# teletype-crdt
+##### Atom and all repositories under Atom will be archived on December 15, 2022. Learn more in our [official announcement](https://github.blog/2022-06-08-sunsetting-atom/)
+ # teletype-crdt
 
 The string-wise sequence CRDT powering peer-to-peer collaborative editing in [Teletype for Atom](https://github.com/atom/teletype).
 
