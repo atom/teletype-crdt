@@ -18,6 +18,7 @@ message Operation {
       Point offset_in_left_dependency = 4;
       SpliceId right_dependency_id = 5;
       Point offset_in_right_dependency = 6;
+      uint32 insertion_clock = 7;
     }
 
     message Deletion {
